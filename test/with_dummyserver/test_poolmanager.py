@@ -414,7 +414,7 @@ class TestPoolManager(HTTPDummyServerTestCase):
         assert r.status == 200
 
     def test_top_level_request_with_timeout(self):
-        with mock.patch("urllib3.poolmanager.RequestMethods.request") as mockRequest:
+        with mock.patch("urllib3.poolmanager.PoolManager.request") as mockRequest:
             mockRequest.return_value = HTTPResponse(status=200)
 
             r = request("GET", f"{self.base_url}/redirect", timeout=2.5)

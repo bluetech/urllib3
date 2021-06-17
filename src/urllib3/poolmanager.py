@@ -13,10 +13,10 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 from ._collections import RecentlyUsedContainer
-from .connection import ProxyConfig
+from .connection import HTTPBody, ProxyConfig
 from .connectionpool import (  # type: ignore
     HTTPConnectionPool,
     HTTPSConnectionPool,
@@ -28,7 +28,8 @@ from .exceptions import (
     ProxySchemeUnknown,
     URLSchemeUnknown,
 )
-from .request import RequestMethods
+from .filepost import _TYPE_FIELDS, encode_multipart_formdata
+from .request import _ENCODE_URL_METHODS, _TYPE_ENCODE_URL_FIELDS
 from .response import BaseHTTPResponse
 from .util.connection import SocketOptions
 from .util.proxy import connection_requires_http_tunnel
@@ -156,7 +157,7 @@ key_fn_by_scheme = {
 pool_classes_by_scheme = {"http": HTTPConnectionPool, "https": HTTPSConnectionPool}
 
 
-class PoolManager(RequestMethods):
+class PoolManager:
     """
     Allows for arbitrary requests while transparently keeping track of
     necessary connection pools for you.
@@ -199,7 +200,10 @@ class PoolManager(RequestMethods):
         headers: Optional[Mapping[str, str]] = None,
         **connection_pool_kw: Any,
     ) -> None:
-        super().__init__(headers)
+        if headers is None:
+            headers = {}
+
+        self.headers = headers
         self.connection_pool_kw = connection_pool_kw
 
         def dispose_func(p: Any) -> None:
@@ -396,7 +400,7 @@ class PoolManager(RequestMethods):
             self.proxy, self.proxy_config, parsed_url.scheme
         )
 
-    def urlopen(  # type: ignore
+    def urlopen(
         self, method: str, url: str, redirect: bool = True, **kw: Any
     ) -> BaseHTTPResponse:
         """
@@ -463,6 +467,143 @@ class PoolManager(RequestMethods):
 
         response.drain_conn()
         return self.urlopen(method, redirect_location, **kw)
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        body: Optional[HTTPBody] = None,
+        fields: Optional[_TYPE_FIELDS] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        **urlopen_kw: Any,
+    ) -> BaseHTTPResponse:
+        """
+        Make a request using :meth:`urlopen` with the appropriate encoding of
+        ``fields`` based on the ``method`` used.
+
+        This is a convenience method that requires the least amount of manual
+        effort. It can be used in most situations, while still having the
+        option to drop down to more specific methods when necessary, such as
+        :meth:`request_encode_url`, :meth:`request_encode_body`,
+        or even the lowest level :meth:`urlopen`.
+        """
+        method = method.upper()
+
+        urlopen_kw["request_url"] = url
+
+        if body is not None:
+            urlopen_kw["body"] = body
+
+        if method in _ENCODE_URL_METHODS:
+            return self.request_encode_url(
+                method,
+                url,
+                fields=fields,  # type: ignore
+                headers=headers,
+                **urlopen_kw,
+            )
+        else:
+            return self.request_encode_body(
+                method, url, fields=fields, headers=headers, **urlopen_kw
+            )
+
+    def request_encode_url(
+        self,
+        method: str,
+        url: str,
+        fields: Optional[_TYPE_ENCODE_URL_FIELDS] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        **urlopen_kw: str,
+    ) -> BaseHTTPResponse:
+        """
+        Make a request using :meth:`urlopen` with the ``fields`` encoded in
+        the url. This is useful for request methods like GET, HEAD, DELETE, etc.
+        """
+        if headers is None:
+            headers = self.headers
+
+        extra_kw: Dict[str, Any] = {"headers": headers}
+        extra_kw.update(urlopen_kw)
+
+        if fields:
+            url += "?" + urlencode(fields)
+
+        return self.urlopen(method, url, **extra_kw)
+
+    def request_encode_body(
+        self,
+        method: str,
+        url: str,
+        fields: Optional[_TYPE_FIELDS] = None,
+        headers: Optional[Mapping[str, str]] = None,
+        encode_multipart: bool = True,
+        multipart_boundary: Optional[str] = None,
+        **urlopen_kw: str,
+    ) -> BaseHTTPResponse:
+        """
+        Make a request using :meth:`urlopen` with the ``fields`` encoded in
+        the body. This is useful for request methods like POST, PUT, PATCH, etc.
+
+        When ``encode_multipart=True`` (default), then
+        :func:`urllib3.encode_multipart_formdata` is used to encode
+        the payload with the appropriate content type. Otherwise
+        :func:`urllib.parse.urlencode` is used with the
+        'application/x-www-form-urlencoded' content type.
+
+        Multipart encoding must be used when posting files, and it's reasonably
+        safe to use it in other times too. However, it may break request
+        signing, such as with OAuth.
+
+        Supports an optional ``fields`` parameter of key/value strings AND
+        key/filetuple. A filetuple is a (filename, data, MIME type) tuple where
+        the MIME type is optional. For example::
+
+            fields = {
+                'foo': 'bar',
+                'fakefile': ('foofile.txt', 'contents of foofile'),
+                'realfile': ('barfile.txt', open('realfile').read()),
+                'typedfile': ('bazfile.bin', open('bazfile').read(),
+                              'image/jpeg'),
+                'nonamefile': 'contents of nonamefile field',
+            }
+
+        When uploading a file, providing a filename (the first parameter of the
+        tuple) is optional but recommended to best mimic behavior of browsers.
+
+        Note that if ``headers`` are supplied, the 'Content-Type' header will
+        be overwritten because it depends on the dynamic random boundary string
+        which is used to compose the body of the request. The random boundary
+        string can be explicitly set with the ``multipart_boundary`` parameter.
+        """
+        if headers is None:
+            headers = self.headers
+
+        extra_kw: Dict[str, Any] = {"headers": {}}
+        body: Union[bytes, str]
+
+        if fields:
+            if "body" in urlopen_kw:
+                raise TypeError(
+                    "request got values for both 'fields' and 'body', can only specify one."
+                )
+
+            if encode_multipart:
+                body, content_type = encode_multipart_formdata(
+                    fields, boundary=multipart_boundary
+                )
+            else:
+                body, content_type = (
+                    urlencode(fields),  # type: ignore
+                    "application/x-www-form-urlencoded",
+                )
+
+            extra_kw["body"] = body
+            extra_kw["headers"] = {"Content-Type": content_type}
+
+        extra_kw["headers"].update(headers)
+        extra_kw.update(urlopen_kw)
+
+        return self.urlopen(method, url, **extra_kw)
 
 
 class ProxyManager(PoolManager):
@@ -580,7 +721,7 @@ class ProxyManager(PoolManager):
             headers_.update(headers)
         return headers_
 
-    def urlopen(  # type: ignore
+    def urlopen(
         self, method: str, url: str, redirect: bool = True, **kw: Any
     ) -> BaseHTTPResponse:
         "Same as HTTP(S)ConnectionPool.urlopen, ``url`` must be absolute."

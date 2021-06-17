@@ -11,6 +11,8 @@ _TYPE_ENCODE_URL_FIELDS = Union[
     Sequence[Tuple[str, Union[str, bytes]]], Mapping[str, Union[str, bytes]]
 ]
 
+_ENCODE_URL_METHODS = {"DELETE", "GET", "HEAD", "OPTIONS"}
+
 
 class RequestMethods:
     """
@@ -40,8 +42,6 @@ class RequestMethods:
         Headers to include with all requests, unless other headers are given
         explicitly.
     """
-
-    _encode_url_methods = {"DELETE", "GET", "HEAD", "OPTIONS"}
 
     def __init__(self, headers: Optional[Mapping[str, str]] = None) -> None:
         self.headers = headers or {}
@@ -87,7 +87,7 @@ class RequestMethods:
         if body is not None:
             urlopen_kw["body"] = body
 
-        if method in self._encode_url_methods:
+        if method in _ENCODE_URL_METHODS:
             return self.request_encode_url(
                 method,
                 url,
