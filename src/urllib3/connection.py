@@ -5,7 +5,6 @@ import re
 import socket
 import sys
 import warnings
-from copy import copy
 from http.client import HTTPConnection as _HTTPConnection
 from http.client import HTTPException  # noqa: F401
 from socket import timeout as SocketTimeout
@@ -277,13 +276,11 @@ class HTTPConnection(_HTTPConnection):
     ) -> None:
         if headers is None:
             headers = {}
-        else:
-            # Avoid modifying the headers passed into .request()
-            headers = copy(headers)
         if "user-agent" not in (to_str(k.lower()) for k in headers):
-            updated_headers = {"User-Agent": _get_default_user_agent()}
-            updated_headers.update(headers)
-            headers = updated_headers
+            headers = {
+                **headers,
+                "User-Agent": _get_default_user_agent(),
+            }
         super().request(method, url, body=body, headers=headers)
 
     def request_chunked(
