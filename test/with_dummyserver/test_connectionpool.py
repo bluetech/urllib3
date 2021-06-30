@@ -965,10 +965,7 @@ class TestConnectionPool(HTTPDummyServerTestCase):
                 pool.request("GET", "/headers", chunked=chunked)
             else:
                 conn = pool._get_conn()
-                if chunked:
-                    conn.request_chunked("GET", "/headers")
-                else:
-                    conn.request("GET", "/headers")
+                conn.request("GET", "/headers", chunked=chunked)
 
             assert pool.headers == {"key": "val"}
             assert isinstance(pool.headers, header_type)
@@ -978,10 +975,7 @@ class TestConnectionPool(HTTPDummyServerTestCase):
                 pool.request("GET", "/headers", headers=headers, chunked=chunked)
             else:
                 conn = pool._get_conn()
-                if chunked:
-                    conn.request_chunked("GET", "/headers", headers=headers)
-                else:
-                    conn.request("GET", "/headers", headers=headers)
+                conn.request("GET", "/headers", headers=headers, chunked=chunked)
 
             assert headers == {"key": "val"}
 

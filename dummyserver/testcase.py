@@ -239,7 +239,6 @@ class ConnectionMarker:
         """
 
         orig_request = HTTPConnection.request
-        orig_request_chunked = HTTPConnection.request_chunked
 
         def call_and_mark(target):
             def part(self, *args, **kwargs):
@@ -251,9 +250,6 @@ class ConnectionMarker:
 
         with monkeypatch.context() as m:
             m.setattr(HTTPConnection, "request", call_and_mark(orig_request))
-            m.setattr(
-                HTTPConnection, "request_chunked", call_and_mark(orig_request_chunked)
-            )
             yield
 
     @classmethod

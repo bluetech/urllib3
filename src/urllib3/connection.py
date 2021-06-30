@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from typing_extensions import Literal
 
 from .util.proxy import create_proxy_ssl_context
-from .util.util import to_bytes, to_str
+from .util.util import to_str
 
 try:  # Compiled with SSL?
     import ssl
@@ -273,6 +273,8 @@ class HTTPConnection(_HTTPConnection):
         url: str,
         body: Optional[_TYPE_BODY] = None,
         headers: Optional[Mapping[str, str]] = None,
+        *,
+        chunked: bool = False,
     ) -> None:
         if headers is None:
             headers = {}
@@ -281,7 +283,7 @@ class HTTPConnection(_HTTPConnection):
                 **headers,
                 "User-Agent": _get_default_user_agent(),
             }
-        super().request(method, url, body=body, headers=headers)
+        super().request(method, url, body=body, headers=headers, encode_chunked=chunked)
 
     def request_chunked(
         self,
@@ -291,42 +293,9 @@ class HTTPConnection(_HTTPConnection):
         headers: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
-        Alternative to the common request method, which sends the
-        body with chunked encoding and not as one block
+        Same as `request(..., chunked=True)`.
         """
-        if headers is None:
-            headers = {}
-        header_keys = {to_str(k.lower()) for k in headers}
-        skip_accept_encoding = "accept-encoding" in header_keys
-        skip_host = "host" in header_keys
-        self.putrequest(
-            method, url, skip_accept_encoding=skip_accept_encoding, skip_host=skip_host
-        )
-        if "user-agent" not in header_keys:
-            self.putheader("User-Agent", _get_default_user_agent())
-        for header, value in headers.items():
-            self.putheader(header, value)
-        if "transfer-encoding" not in header_keys:
-            self.putheader("Transfer-Encoding", "chunked")
-        self.endheaders()
-
-        if body is not None:
-            if isinstance(body, (str, bytes)):
-                body = (to_bytes(body),)
-            for chunk in body:
-                if not chunk:
-                    continue
-                if not isinstance(chunk, bytes):
-                    chunk = chunk.encode("utf8")
-                len_str = hex(len(chunk))[2:]
-                to_send = bytearray(len_str.encode())
-                to_send += b"\r\n"
-                to_send += chunk
-                to_send += b"\r\n"
-                self.send(to_send)
-
-        # After the if clause, to always have a closed body
-        self.send(b"0\r\n\r\n")
+        self.request(method, url, body, headers, chunked=True)
 
 
 class HTTPSConnection(HTTPConnection):
