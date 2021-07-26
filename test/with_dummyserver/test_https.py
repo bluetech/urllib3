@@ -19,7 +19,7 @@ from test import (
 from unittest import mock
 
 import pytest
-import trustme
+import trustme  # type: ignore[import]
 
 import urllib3.util as util
 from dummyserver.server import (

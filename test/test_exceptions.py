@@ -1,4 +1,5 @@
 import pickle
+from email.errors import MessageDefect
 
 import pytest
 
@@ -23,27 +24,27 @@ class TestPickle:
         "exception",
         [
             HTTPError(None),
-            MaxRetryError(None, None, None),
-            LocationParseError(None),
+            MaxRetryError(HTTPConnectionPool("localhost"), "dummy", None),
+            LocationParseError("dummy"),
             ConnectTimeoutError(None),
             HTTPError("foo"),
             HTTPError("foo", IOError("foo")),
             MaxRetryError(HTTPConnectionPool("localhost"), "/", None),
             LocationParseError("fake location"),
-            ClosedPoolError(HTTPConnectionPool("localhost"), None),
-            EmptyPoolError(HTTPConnectionPool("localhost"), None),
-            HostChangedError(HTTPConnectionPool("localhost"), "/", None),
-            ReadTimeoutError(HTTPConnectionPool("localhost"), "/", None),
+            ClosedPoolError(HTTPConnectionPool("localhost"), "dummy"),
+            EmptyPoolError(HTTPConnectionPool("localhost"), "dummy"),
+            HostChangedError(HTTPConnectionPool("localhost"), "/", 1),
+            ReadTimeoutError(HTTPConnectionPool("localhost"), "/", "dummy"),
         ],
     )
-    def test_exceptions(self, exception) -> None:
+    def test_exceptions(self, exception: Exception) -> None:
         result = pickle.loads(pickle.dumps(exception))
         assert isinstance(result, type(exception))
 
 
 class TestFormat:
     def test_header_parsing_errors(self) -> None:
-        hpe = HeaderParsingError("defects", "unparsed_data")
+        hpe = HeaderParsingError([MessageDefect("defect")], "unparsed_data")
 
         assert "defects" in str(hpe)
         assert "unparsed_data" in str(hpe)
@@ -52,12 +53,11 @@ class TestFormat:
 class TestNewConnectionError:
     def test_pool_property_deprecation_warning(self) -> None:
         err = NewConnectionError(HTTPConnection("localhost"), "test")
-        with pytest.warns(DeprecationWarning) as records:
-            err.pool
-
-        assert err.pool is err.conn
         msg = (
             "The 'pool' property is deprecated and will be removed "
             "in a later urllib3 v2.x release. use 'conn' instead."
         )
-        assert any(record.message.args[0] == msg for record in records)
+        with pytest.warns(DeprecationWarning, match=msg):
+            err.pool
+
+        assert err.pool is err.conn

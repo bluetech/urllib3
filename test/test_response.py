@@ -6,7 +6,9 @@ import zlib
 from base64 import b64decode
 from io import BufferedReader, BytesIO, TextIOWrapper
 from test import onlyBrotli
+from typing import IO, Generator, Iterator, List, Optional
 from unittest import mock
+from http.client import IncompleteRead as httplib_IncompleteRead
 
 import pytest
 
@@ -19,9 +21,8 @@ from urllib3.exceptions import (
     ProtocolError,
     ResponseNotChunked,
     SSLError,
-    httplib_IncompleteRead,
 )
-from urllib3.response import HTTPResponse, brotli
+from urllib3.response import HTTPResponse, brotli  # type: ignore[attr-defined]
 from urllib3.util.response import is_fp_closed
 from urllib3.util.retry import RequestHistory, Retry
 
@@ -44,7 +45,7 @@ nP4HF2uWHA=="""
 
 
 @pytest.fixture
-def sock():
+def sock() -> Generator[socket.socket, None, None]:
     s = socket.socket()
     yield s
     s.close()
@@ -133,6 +134,7 @@ class TestResponse:
 
         assert r.read(3) == b""
         # Buffer in case we need to switch to the raw stream
+        assert r._decoder is not None
         assert r._decoder._data is not None
         assert r.read(1) == b"f"
         # Now that we've decoded data, we just stream through the decoder
@@ -154,6 +156,7 @@ class TestResponse:
         assert r.read(1) == b""
         assert r.read(1) == b"f"
         # Once we've decoded data, we just stream to the decoder; no buffering
+        assert r._decoder is not None
         assert r._decoder._data is None
         assert r.read(2) == b"oo"
         assert r.read() == b""
@@ -288,7 +291,7 @@ class TestResponse:
         assert resp.data == b"foo"
         assert resp.closed
 
-    def test_io(self, sock) -> None:
+    def test_io(self, sock: socket.socket) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(fp, preload_content=False)
 
@@ -324,7 +327,7 @@ class TestResponse:
         with pytest.raises(IOError):
             resp3.fileno()
 
-    def test_io_closed_consistently(self, sock) -> None:
+    def test_io_closed_consistently(self, sock: socket.socket) -> None:
         try:
             hlr = httplib.HTTPResponse(sock)
             hlr.fp = BytesIO(b"foo")
@@ -504,7 +507,7 @@ class TestResponse:
             calls to ``read``.
             """
 
-            def __init__(self, payload, payload_part_size):
+            def __init__(self, payload: bytes, payload_part_size: int) -> None:
                 self.payloads = [
                     payload[i * payload_part_size : (i + 1) * payload_part_size]
                     for i in range(NUMBER_OF_READS + 1)
@@ -512,7 +515,7 @@ class TestResponse:
 
                 assert b"".join(self.payloads) == payload
 
-            def read(self, _):
+            def read(self, _: Optional[int] = None) -> bytes:
                 # Amount is unused.
                 if len(self.payloads) > 0:
                     return self.payloads.pop(0)
@@ -655,16 +658,17 @@ class TestResponse:
         # read() and close() calls, and also exhausts and underlying file
         # object.
         class MockHTTPRequest:
-            self.fp = None
+            fp: Optional[BytesIO]
 
-            def read(self, amt):
+            def read(self, amt: Optional[int]) -> bytes:
+                assert self.fp is not None
                 data = self.fp.read(amt)
                 if not data:
                     self.fp = None
 
                 return data
 
-            def close(self):
+            def close(self) -> None:
                 self.fp = None
 
         bio = BytesIO(b"foo")
@@ -693,7 +697,7 @@ class TestResponse:
     def test_mock_gzipped_transfer_encoding_chunked_decoded(self) -> None:
         """Show that we can decode the gzipped and chunked body."""
 
-        def stream():
+        def stream() -> Iterator[bytes]:
             # Set up a generator to chunk the gzipped body
             compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
             data = compress.compress(b"foobar")
@@ -872,7 +876,7 @@ class TestResponse:
     def test_geturl_retries(self) -> None:
         fp = BytesIO(b"")
         resp = HTTPResponse(fp, request_url="http://example.com")
-        request_histories = [
+        request_histories = (
             RequestHistory(
                 method="GET",
                 url="http://example.com",
@@ -887,7 +891,7 @@ class TestResponse:
                 status=301,
                 redirect_location="https://www.example.com",
             ),
-        ]
+        )
         retry = Retry(history=request_histories)
         resp = HTTPResponse(fp, retries=retry)
         assert resp.geturl() == "https://www.example.com"
@@ -902,7 +906,7 @@ class TestResponse:
             (b"Hello\nworld\n\n\n!", [b"Hello\n", b"world\n", b"\n", b"\n", b"!"]),
         ],
     )
-    def test__iter__(self, payload, expected_stream) -> None:
+    def test__iter__(self, payload: bytes, expected_stream: List[bytes]) -> None:
         actual_stream = []
         for chunk in HTTPResponse(BytesIO(payload), preload_content=False):
             actual_stream.append(chunk)
@@ -910,7 +914,7 @@ class TestResponse:
         assert actual_stream == expected_stream
 
     def test__iter__decode_content(self) -> None:
-        def stream():
+        def stream() -> Iterator[bytes]:
             # Set up a generator to chunk the gzipped body
             compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
             data = compress.compress(b"foo\nbar")
@@ -936,7 +940,7 @@ class TestResponse:
         )
 
         @contextlib.contextmanager
-        def make_bad_mac_fp():
+        def make_bad_mac_fp() -> Generator[IO[bytes], None, None]:
             fp = BytesIO(b"")
             with mock.patch.object(fp, "read") as fp_read:
                 # mac/decryption error
@@ -956,7 +960,7 @@ class TestResponse:
 
 
 class MockChunkedEncodingResponse:
-    def __init__(self, content):
+    def __init__(self, content: List[bytes]) -> None:
         """
         content: collection of str, each str is a chunk in response
         """
@@ -967,12 +971,12 @@ class MockChunkedEncodingResponse:
         self.chunks_exhausted = False
 
     @staticmethod
-    def _encode_chunk(chunk):
+    def _encode_chunk(chunk: bytes) -> bytes:
         # In the general case, we can't decode the chunk to unicode
         length = f"{len(chunk):X}\r\n"
         return length.encode() + chunk + b"\r\n"
 
-    def _pop_new_chunk(self):
+    def _pop_new_chunk(self) -> bytes:
         if self.chunks_exhausted:
             return b""
         try:
@@ -987,7 +991,7 @@ class MockChunkedEncodingResponse:
             chunk = chunk.encode()
         return chunk
 
-    def pop_current_chunk(self, amt=-1, till_crlf=False):
+    def pop_current_chunk(self, amt: int = -1, till_crlf: bool = False) -> bytes:
         if amt > 0 and till_crlf:
             raise ValueError("Can't specify amt and till_crlf.")
         if len(self.cur_chunk) <= 0:
@@ -1017,34 +1021,34 @@ class MockChunkedEncodingResponse:
                 self.cur_chunk = self.cur_chunk[amt:]
             return chunk_part
 
-    def readline(self):
+    def readline(self) -> bytes:
         return self.pop_current_chunk(till_crlf=True)
 
-    def read(self, amt=-1):
+    def read(self, amt: int = -1) -> bytes:
         return self.pop_current_chunk(amt)
 
-    def flush(self):
+    def flush(self) -> None:
         # Python 3 wants this method.
         pass
 
-    def close(self):
+    def close(self) -> None:
         self.closed = True
 
 
 class MockChunkedIncompleteRead(MockChunkedEncodingResponse):
-    def _encode_chunk(self, chunk):
+    def _encode_chunk(self, chunk: bytes) -> str:
         return f"9999\r\n{chunk.decode()}\r\n"
 
 
 class MockChunkedInvalidChunkLength(MockChunkedEncodingResponse):
     BAD_LENGTH_LINE = "ZZZ\r\n"
 
-    def _encode_chunk(self, chunk):
+    def _encode_chunk(self, chunk: bytes) -> str:
         return f"{self.BAD_LENGTH_LINE}{chunk.decode()}\r\n"
 
 
 class MockChunkedEncodingWithoutCRLFOnEnd(MockChunkedEncodingResponse):
-    def _encode_chunk(self, chunk):
+    def _encode_chunk(self, chunk: bytes) -> str:
         return "{:X}\r\n{}{}".format(
             len(chunk),
             chunk.decode(),
@@ -1053,7 +1057,7 @@ class MockChunkedEncodingWithoutCRLFOnEnd(MockChunkedEncodingResponse):
 
 
 class MockChunkedEncodingWithExtensions(MockChunkedEncodingResponse):
-    def _encode_chunk(self, chunk):
+    def _encode_chunk(self, chunk: bytes) -> str:
         return f"{len(chunk):X};asd=qwe\r\n{chunk.decode()}\r\n"
 
 

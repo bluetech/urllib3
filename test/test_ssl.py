@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from unittest import mock
 
 import pytest
@@ -25,7 +26,7 @@ class TestSSL:
             b"FE80::8939:7684:D84b:a5A4%19",
         ],
     )
-    def test_is_ipaddress_true(self, addr) -> None:
+    def test_is_ipaddress_true(self, addr: Union[str, bytes]) -> None:
         assert ssl_.is_ipaddress(addr)
 
     @pytest.mark.parametrize(
@@ -37,7 +38,7 @@ class TestSSL:
             b"v2.sg.media-imdb.com",
         ],
     )
-    def test_is_ipaddress_false(self, addr) -> None:
+    def test_is_ipaddress_false(self, addr: Union[str, bytes]) -> None:
         assert not ssl_.is_ipaddress(addr)
 
     @pytest.mark.parametrize(
@@ -52,7 +53,11 @@ class TestSSL:
         ],
     )
     def test_sni_missing_warning_with_ip_addresses(
-        self, monkeypatch, has_sni, server_hostname, should_warn
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        has_sni: bool,
+        server_hostname: Optional[str],
+        should_warn: bool,
     ) -> None:
         monkeypatch.setattr(ssl_, "HAS_SNI", has_sni)
 
@@ -79,7 +84,10 @@ class TestSSL:
         ],
     )
     def test_create_urllib3_context_set_ciphers(
-        self, monkeypatch, ciphers, expected_ciphers
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        ciphers: Optional[str],
+        expected_ciphers: str,
     ) -> None:
 
         context = mock.create_autospec(ssl_.SSLContext)
@@ -110,7 +118,7 @@ class TestSSL:
         context.load_default_certs.assert_not_called()
 
     def test_wrap_socket_given_ca_certs_no_load_default_certs(
-        self, monkeypatch
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         context = mock.create_autospec(ssl_.SSLContext)
         context.load_default_certs = mock.Mock()
@@ -124,7 +132,9 @@ class TestSSL:
         context.load_default_certs.assert_not_called()
         context.load_verify_locations.assert_called_with("/tmp/fake-file", None, None)
 
-    def test_wrap_socket_default_loads_default_certs(self, monkeypatch) -> None:
+    def test_wrap_socket_default_loads_default_certs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         context = mock.create_autospec(ssl_.SSLContext)
         context.load_default_certs = mock.Mock()
         context.options = 0
@@ -145,7 +155,12 @@ class TestSSL:
     @pytest.mark.parametrize(
         ["pha", "expected_pha"], [(None, None), (False, True), (True, True)]
     )
-    def test_create_urllib3_context_pha(self, monkeypatch, pha, expected_pha) -> None:
+    def test_create_urllib3_context_pha(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        pha: Optional[bool],
+        expected_pha: Optional[bool],
+    ) -> None:
         context = mock.create_autospec(ssl_.SSLContext)
         context.set_ciphers = mock.Mock()
         context.options = 0
@@ -158,7 +173,7 @@ class TestSSL:
 
     @pytest.mark.parametrize("use_default_sslcontext_ciphers", [True, False])
     def test_create_urllib3_context_default_ciphers(
-        self, monkeypatch, use_default_sslcontext_ciphers
+        self, monkeypatch: pytest.MonkeyPatch, use_default_sslcontext_ciphers: bool
     ) -> None:
         context = mock.create_autospec(ssl_.SSLContext)
         context.set_ciphers = mock.Mock()

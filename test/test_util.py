@@ -6,6 +6,7 @@ import sys
 import warnings
 from itertools import chain
 from test import ImportBlocker, ModuleStash, notBrotli, onlyBrotli
+from typing import Any, Dict, Optional, Tuple, Union
 from unittest.mock import Mock, patch
 
 import pytest
@@ -127,13 +128,15 @@ class TestUtil:
     ]
 
     @pytest.mark.parametrize(["url", "scheme_host_port"], url_host_map)
-    def test_scheme_host_port(self, url, scheme_host_port) -> None:
-        url = parse_url(url)
+    def test_scheme_host_port(
+        self, url: str, scheme_host_port: Tuple[str, str, Optional[int]]
+    ) -> None:
+        parsed = parse_url(url)
         scheme, host, port = scheme_host_port
 
-        assert (url.scheme or "http") == scheme
-        assert url.hostname == url.host == host
-        assert url.port == port
+        assert (parsed.scheme or "http") == scheme
+        assert parsed.hostname == parsed.host == host
+        assert parsed.port == port
 
     def test_encode_invalid_chars_none(self) -> None:
         assert _encode_invalid_chars(None, set()) is None
@@ -155,7 +158,7 @@ class TestUtil:
             "http://\uDC00.com",
         ],
     )
-    def test_invalid_url(self, url) -> None:
+    def test_invalid_url(self, url: str) -> None:
         with pytest.raises(LocationParseError):
             parse_url(url)
 
@@ -192,13 +195,15 @@ class TestUtil:
             ),
         ],
     )
-    def test_parse_url_normalization(self, url, expected_normalized_url) -> None:
+    def test_parse_url_normalization(
+        self, url: str, expected_normalized_url: str
+    ) -> None:
         """Assert parse_url normalizes the scheme/host, and only the scheme/host"""
         actual_normalized_url = parse_url(url).url
         assert actual_normalized_url == expected_normalized_url
 
     @pytest.mark.parametrize("char", [chr(i) for i in range(0x00, 0x21)] + ["\x7F"])
-    def test_control_characters_are_percent_encoded(self, char) -> None:
+    def test_control_characters_are_percent_encoded(self, char: str) -> None:
         percent_char = "%" + (hex(ord(char))[2:].zfill(2).upper())
         url = parse_url(
             f"http://user{char}@example.com/path{char}?query{char}#fragment{char}"
@@ -290,13 +295,13 @@ class TestUtil:
         "url, expected_url",
         chain(parse_url_host_map, non_round_tripping_parse_url_host_map),
     )
-    def test_parse_url(self, url, expected_url) -> None:
+    def test_parse_url(self, url: str, expected_url: Url) -> None:
         returned_url = parse_url(url)
         assert returned_url == expected_url
         assert returned_url.hostname == returned_url.host == expected_url.host
 
     @pytest.mark.parametrize("url, expected_url", parse_url_host_map)
-    def test_unparse_url(self, url, expected_url) -> None:
+    def test_unparse_url(self, url: str, expected_url: Url) -> None:
         assert url == expected_url.url
 
     @pytest.mark.parametrize(
@@ -311,7 +316,7 @@ class TestUtil:
             ("/abc/./.././d/././e/.././f/./../../ghi", Url(path="/ghi")),
         ],
     )
-    def test_parse_and_normalize_url_paths(self, url, expected_url) -> None:
+    def test_parse_and_normalize_url_paths(self, url: str, expected_url: Url) -> None:
         actual_url = parse_url(url)
         assert actual_url == expected_url
         assert actual_url.url == expected_url.url
@@ -341,7 +346,7 @@ class TestUtil:
     ]
 
     @pytest.mark.parametrize("url, expected_request_uri", request_uri_map)
-    def test_request_uri(self, url, expected_request_uri) -> None:
+    def test_request_uri(self, url: str, expected_request_uri: str) -> None:
         returned_url = parse_url(url)
         assert returned_url.request_uri == expected_request_uri
 
@@ -354,7 +359,7 @@ class TestUtil:
     ]
 
     @pytest.mark.parametrize("url, expected_netloc", url_netloc_map)
-    def test_netloc(self, url, expected_netloc) -> None:
+    def test_netloc(self, url: str, expected_netloc: str) -> None:
         assert parse_url(url).netloc == expected_netloc
 
     url_vulnerabilities = [
@@ -436,7 +441,9 @@ class TestUtil:
     ]
 
     @pytest.mark.parametrize("url, expected_url", url_vulnerabilities)
-    def test_url_vulnerabilities(self, url, expected_url) -> None:
+    def test_url_vulnerabilities(
+        self, url: str, expected_url: Union[Url, bool]
+    ) -> None:
         if expected_url is False:
             with pytest.raises(LocationParseError):
                 parse_url(url)
@@ -445,7 +452,7 @@ class TestUtil:
 
     def test_parse_url_bytes_type_error(self) -> None:
         with pytest.raises(TypeError):
-            parse_url(b"https://www.google.com/")
+            parse_url(b"https://www.google.com/")  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(
         "kwargs, expected",
@@ -482,7 +489,9 @@ class TestUtil:
             ({"disable_cache": True}, {"cache-control": "no-cache"}),
         ],
     )
-    def test_make_headers(self, kwargs, expected) -> None:
+    def test_make_headers(
+        self, kwargs: Dict[str, Any], expected: Dict[str, str]
+    ) -> None:
         assert make_headers(**kwargs) == expected
 
     def test_rewind_body(self) -> None:
@@ -517,11 +526,11 @@ class TestUtil:
 
     def test_rewind_body_failed_seek(self) -> None:
         class BadSeek:
-            def seek(self, pos, offset=0):
+            def seek(self, pos: int, offset: int = 0) -> int:
                 raise OSError
 
         with pytest.raises(UnrewindableBodyError):
-            rewind_body(BadSeek(), body_pos=2)
+            rewind_body(BadSeek(), body_pos=2)  # type: ignore[arg-type]
 
     def test_add_stderr_logger(self) -> None:
         handler = add_stderr_logger(level=logging.INFO)  # Don't actually print debug
@@ -540,7 +549,7 @@ class TestUtil:
             warnings.warn("This is a test.", InsecureRequestWarning)
             assert len(w) == 1
 
-    def _make_time_pass(self, seconds, timeout, time_mock):
+    def _make_time_pass(self, seconds: int, timeout: Timeout, time_mock) -> Timeout:
         """ Make some time pass for the timeout object """
         time_mock.return_value = TIMEOUT_EPOCH
         timeout.start_connect()
@@ -560,12 +569,12 @@ class TestUtil:
             ({"read": "1.0"}, "int, float or None"),
         ],
     )
-    def test_invalid_timeouts(self, kwargs, message) -> None:
+    def test_invalid_timeouts(self, kwargs: Dict[str, Any], message: str) -> None:
         with pytest.raises(ValueError, match=message):
             Timeout(**kwargs)
 
     @patch("time.monotonic")
-    def test_timeout(self, time_monotonic) -> None:
+    def test_timeout(self, time_monotonic: Any) -> None:
         timeout = Timeout(total=3)
 
         # make 'no time' elapse
@@ -613,7 +622,7 @@ class TestUtil:
         assert str(timeout) == "Timeout(connect=1, read=None, total=3)"
 
     @patch("time.monotonic")
-    def test_timeout_elapsed(self, time_monotonic) -> None:
+    def test_timeout_elapsed(self, time_monotonic: Any) -> None:
         time_monotonic.return_value = TIMEOUT_EPOCH
         timeout = Timeout(total=3)
         with pytest.raises(TimeoutStateError):
@@ -631,7 +640,7 @@ class TestUtil:
     def test_is_fp_closed_object_supports_closed(self) -> None:
         class ClosedFile:
             @property
-            def closed(self):
+            def closed(self) -> bool:
                 return True
 
         assert is_fp_closed(ClosedFile())
@@ -639,7 +648,7 @@ class TestUtil:
     def test_is_fp_closed_object_has_none_fp(self) -> None:
         class NoneFpFile:
             @property
-            def fp(self):
+            def fp(self) -> Optional[int]:
                 return None
 
         assert is_fp_closed(NoneFpFile())
@@ -647,7 +656,7 @@ class TestUtil:
     def test_is_fp_closed_object_has_fp(self) -> None:
         class FpFile:
             @property
-            def fp(self):
+            def fp(self) -> Optional[int]:
                 return True
 
         assert not is_fp_closed(FpFile())
@@ -687,10 +696,10 @@ class TestUtil:
 
     @pytest.mark.parametrize("headers", [b"foo", None, object])
     def test_assert_header_parsing_throws_typeerror_with_non_headers(
-        self, headers
+        self, headers: object
     ) -> None:
         with pytest.raises(TypeError):
-            assert_header_parsing(headers)
+            assert_header_parsing(headers)  # type: ignore[arg-type]
 
     def test_connection_requires_http_tunnel_no_proxy(self) -> None:
         assert not connection_requires_http_tunnel(
@@ -734,7 +743,7 @@ class TestUtil:
         assert_header_parsing(client.parse_headers(header_msg))
 
     @pytest.mark.parametrize("host", [".localhost", "...", "t" * 64])
-    def test_create_connection_with_invalid_idna_labels(self, host) -> None:
+    def test_create_connection_with_invalid_idna_labels(self, host: str) -> None:
         with pytest.raises(
             LocationParseError,
             match=f"Failed to parse: '{host}', label empty or too long",
@@ -754,20 +763,20 @@ class TestUtil:
     @patch("socket.getaddrinfo")
     @patch("socket.socket")
     def test_create_connection_with_valid_idna_labels(
-        self, socket, getaddrinfo, host
+        self, socket: Any, getaddrinfo: Any, host: str
     ) -> None:
         getaddrinfo.return_value = [(None, None, None, None, None)]
         socket.return_value = Mock()
         create_connection((host, 80))
 
     @patch("socket.getaddrinfo")
-    def test_create_connection_error(self, getaddrinfo) -> None:
+    def test_create_connection_error(self, getaddrinfo: Any) -> None:
         getaddrinfo.return_value = []
         with pytest.raises(OSError, match="getaddrinfo returns an empty list"):
             create_connection(("example.com", 80))
 
     @patch("socket.getaddrinfo")
-    def test_dnsresolver_forced_error(self, getaddrinfo) -> None:
+    def test_dnsresolver_forced_error(self, getaddrinfo: Any) -> None:
         getaddrinfo.side_effect = socket.gaierror()
         with pytest.raises(socket.gaierror):
             # dns is valid but we force the error just for the sake of the test
@@ -781,20 +790,26 @@ class TestUtil:
             create_connection(("badhost.invalid", 80))
 
     @pytest.mark.parametrize(
-        "input,params,expected",
+        "input,encoding,errors,expected",
         (
-            ("test", {}, "test"),  # str input
-            (b"test", {}, "test"),  # bytes input
-            (b"test", {"encoding": "utf-8"}, "test"),  # bytes input with utf-8
-            (b"test", {"encoding": "ascii"}, "test"),  # bytes input with ascii
+            ("test", None, None, "test"),  # str input
+            (b"test", None, None, "test"),  # bytes input
+            (b"test", "utf-8", None, "test"),  # bytes input with utf-8
+            (b"test", "ascii", None, "test"),  # bytes input with ascii
         ),
     )
-    def test_to_str(self, input, params, expected) -> None:
-        assert to_str(input, **params) == expected
+    def test_to_str(
+        self,
+        input: Union[str, bytes],
+        encoding: Optional[str],
+        errors: Optional[str],
+        expected: str,
+    ) -> None:
+        assert to_str(input, encoding=encoding, errors=errors) == expected
 
     def test_to_str_error(self) -> None:
         with pytest.raises(TypeError, match="not expecting type int"):
-            to_str(1)
+            to_str(1)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(
         "input,params,expected",
@@ -806,12 +821,18 @@ class TestUtil:
             ("test", {"encoding": "ascii"}, b"test"),  # bytes input with ascii
         ),
     )
-    def test_to_bytes(self, input, params, expected) -> None:
-        assert to_bytes(input, **params) == expected
+    def test_to_bytes(
+        self,
+        input: Union[str, bytes],
+        encoding: Optional[str],
+        errors: Optional[str],
+        expected: bytes,
+    ) -> None:
+        assert to_bytes(input, encoding=encoding, errors=errors) == expected
 
     def test_to_bytes_error(self) -> None:
         with pytest.raises(TypeError, match="not expecting type int"):
-            to_bytes(1)
+            to_bytes(1)  # type: ignore[arg-type]
 
 
 class TestUtilSSL:
@@ -827,7 +848,9 @@ class TestUtilSSL:
             ("CERT_REQUIRED", ssl.CERT_REQUIRED),
         ],
     )
-    def test_resolve_cert_reqs(self, candidate, requirements) -> None:
+    def test_resolve_cert_reqs(
+        self, candidate: Union[None, str, int], requirements: int
+    ) -> None:
         assert resolve_cert_reqs(candidate) == requirements
 
     @pytest.mark.parametrize(
@@ -839,12 +862,14 @@ class TestUtilSSL:
             (ssl.PROTOCOL_SSLv23, ssl.PROTOCOL_SSLv23),
         ],
     )
-    def test_resolve_ssl_version(self, candidate, version) -> None:
+    def test_resolve_ssl_version(
+        self, candidate: Union[None, str, int], version: int
+    ) -> None:
         assert resolve_ssl_version(candidate) == version
 
     def test_ssl_wrap_socket_loads_the_cert_chain(self) -> None:
-        socket = object()
-        mock_context = Mock()
+        socket: Any = object()
+        mock_context: Any = Mock()
         ssl_wrap_socket(
             ssl_context=mock_context, sock=socket, certfile="/path/to/certfile"
         )
@@ -852,25 +877,27 @@ class TestUtilSSL:
         mock_context.load_cert_chain.assert_called_once_with("/path/to/certfile", None)
 
     @patch("urllib3.util.ssl_.create_urllib3_context")
-    def test_ssl_wrap_socket_creates_new_context(self, create_urllib3_context) -> None:
-        socket = object()
-        ssl_wrap_socket(sock=socket, cert_reqs="CERT_REQUIRED")
+    def test_ssl_wrap_socket_creates_new_context(
+        self, create_urllib3_context: Any
+    ) -> None:
+        socket: Any = object()
+        ssl_wrap_socket(sock=socket, cert_reqs=ssl.CERT_REQUIRED)
 
         create_urllib3_context.assert_called_once_with(
             None, "CERT_REQUIRED", ciphers=None
         )
 
     def test_ssl_wrap_socket_loads_verify_locations(self) -> None:
-        socket = object()
-        mock_context = Mock()
+        socket: Any = object()
+        mock_context: Any = Mock()
         ssl_wrap_socket(ssl_context=mock_context, ca_certs="/path/to/pem", sock=socket)
         mock_context.load_verify_locations.assert_called_once_with(
             "/path/to/pem", None, None
         )
 
     def test_ssl_wrap_socket_loads_certificate_directories(self) -> None:
-        socket = object()
-        mock_context = Mock()
+        socket: Any = object()
+        mock_context: Any = Mock()
         ssl_wrap_socket(
             ssl_context=mock_context, ca_cert_dir="/path/to/pems", sock=socket
         )
@@ -879,8 +906,8 @@ class TestUtilSSL:
         )
 
     def test_ssl_wrap_socket_loads_certificate_data(self) -> None:
-        socket = object()
-        mock_context = Mock()
+        socket: Any = object()
+        mock_context: Any = Mock()
         ssl_wrap_socket(
             ssl_context=mock_context, ca_cert_data="TOTALLY PEM DATA", sock=socket
         )
@@ -888,8 +915,10 @@ class TestUtilSSL:
             None, None, "TOTALLY PEM DATA"
         )
 
-    def _wrap_socket_and_mock_warn(self, sock, server_hostname):
-        mock_context = Mock()
+    def _wrap_socket_and_mock_warn(
+        self, sock: socket.socket, server_hostname: Optional[str]
+    ) -> Tuple[Any, Any]:
+        mock_context: Any = Mock()
         with patch("warnings.warn") as warn:
             ssl_wrap_socket(
                 ssl_context=mock_context,
@@ -900,7 +929,7 @@ class TestUtilSSL:
 
     def test_ssl_wrap_socket_sni_hostname_use_or_warn(self) -> None:
         """Test that either an SNI hostname is used or a warning is made."""
-        sock = object()
+        sock: Any = object()
         context, warn = self._wrap_socket_and_mock_warn(sock, "www.google.com")
         if util.HAS_SNI:
             warn.assert_not_called()
@@ -915,14 +944,14 @@ class TestUtilSSL:
 
     def test_ssl_wrap_socket_sni_ip_address_no_warn(self) -> None:
         """Test that a warning is not made if server_hostname is an IP address."""
-        sock = object()
+        sock: Any = object()
         context, warn = self._wrap_socket_and_mock_warn(sock, "8.8.8.8")
         context.wrap_socket.assert_called_once_with(sock, server_hostname="8.8.8.8")
         warn.assert_not_called()
 
     def test_ssl_wrap_socket_sni_none_no_warn(self) -> None:
         """Test that a warning is not made if server_hostname is not given."""
-        sock = object()
+        sock: Any = object()
         context, warn = self._wrap_socket_and_mock_warn(sock, None)
         context.wrap_socket.assert_called_once_with(sock, server_hostname=None)
         warn.assert_not_called()

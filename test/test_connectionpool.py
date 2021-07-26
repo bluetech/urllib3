@@ -83,7 +83,7 @@ class TestConnectionPool:
             ),
         ],
     )
-    def test_same_host(self, a, b) -> None:
+    def test_same_host(self, a: str, b: str) -> None:
         with connection_from_url(a) as c:
             assert c.is_same_host(b)
 
@@ -109,7 +109,7 @@ class TestConnectionPool:
             ("http://[dead::beef]", "https://[dead::beef%en5]/"),
         ],
     )
-    def test_not_same_host(self, a, b) -> None:
+    def test_not_same_host(self, a: str, b: str) -> None:
         with connection_from_url(a) as c:
             assert not c.is_same_host(b)
 
@@ -127,7 +127,7 @@ class TestConnectionPool:
             ("google.com", "http://google.com:80/abracadabra"),
         ],
     )
-    def test_same_host_no_port_http(self, a, b) -> None:
+    def test_same_host_no_port_http(self, a: str, b: str) -> None:
         # This test was introduced in #801 to deal with the fact that urllib3
         # never initializes ConnectionPool objects with port=None.
         with HTTPConnectionPool(a) as c:
@@ -144,7 +144,7 @@ class TestConnectionPool:
             ("google.com", "https://google.com:443/abracadabra"),
         ],
     )
-    def test_same_host_no_port_https(self, a, b) -> None:
+    def test_same_host_no_port_https(self, a: str, b: str) -> None:
         # This test was introduced in #801 to deal with the fact that urllib3
         # never initializes ConnectionPool objects with port=None.
         with HTTPSConnectionPool(a) as c:
@@ -159,7 +159,7 @@ class TestConnectionPool:
             ("google.com", "http://google.com./"),
         ],
     )
-    def test_not_same_host_no_port_http(self, a, b) -> None:
+    def test_not_same_host_no_port_http(self, a: str, b: str) -> None:
         with HTTPConnectionPool(a) as c:
             assert not c.is_same_host(b)
 
@@ -175,7 +175,7 @@ class TestConnectionPool:
             ("google.com", "https://google.com./"),
         ],
     )
-    def test_not_same_host_no_port_https(self, a, b) -> None:
+    def test_not_same_host_no_port_https(self, a: str, b: str) -> None:
         with HTTPSConnectionPool(a) as c:
             assert not c.is_same_host(b)
 
@@ -196,7 +196,7 @@ class TestConnectionPool:
             ("%2Ftmp%2FTEST.sock", "http+unix://%2Ftmp%2FTEST.sock/abracadabra"),
         ],
     )
-    def test_same_host_custom_protocol(self, a, b) -> None:
+    def test_same_host_custom_protocol(self, a: str, b: str) -> None:
         with HTTPUnixConnectionPool(a) as c:
             assert c.is_same_host(b)
 
@@ -209,7 +209,7 @@ class TestConnectionPool:
             ("%2Fvar%2Frun%2Fdocker.sock", "http+unix://%2Ftmp%2FTEST.sock"),
         ],
     )
-    def test_not_same_host_custom_protocol(self, a, b) -> None:
+    def test_not_same_host_custom_protocol(self, a: str, b: str) -> None:
         with HTTPUnixConnectionPool(a) as c:
             assert not c.is_same_host(b)
 

@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pytest
 
 from urllib3._collections import HTTPHeaderDict
@@ -6,7 +8,7 @@ from urllib3._collections import RecentlyUsedContainer as Container
 
 class TestLRUContainer:
     def test_maxsize(self) -> None:
-        d = Container(5)
+        d = Container[int, str](5)
 
         for i in range(5):
             d[i] = str(i)
@@ -23,12 +25,12 @@ class TestLRUContainer:
         assert (i + 1) in d
 
     def test_maxsize_0(self) -> None:
-        d = Container(0)
+        d = Container[int, int](0)
         d[1] = 1
         assert len(d) == 0
 
     def test_expire(self) -> None:
-        d = Container(5)
+        d = Container[int, str](5)
 
         for i in range(5):
             d[i] = str(i)
@@ -43,7 +45,7 @@ class TestLRUContainer:
         assert list(d._container.keys()) == [2, 3, 4, 0, 5]
 
     def test_same_key(self) -> None:
-        d = Container(5)
+        d = Container[str, int](5)
 
         for i in range(10):
             d["foo"] = i
@@ -52,7 +54,7 @@ class TestLRUContainer:
         assert len(d) == 1
 
     def test_access_ordering(self) -> None:
-        d = Container(5)
+        d = Container[int, bool](5)
 
         for i in range(10):
             d[i] = True
@@ -67,7 +69,7 @@ class TestLRUContainer:
         assert list(d._container.keys()) == new_order
 
     def test_delete(self) -> None:
-        d = Container(5)
+        d = Container[int, bool](5)
 
         for i in range(5):
             d[i] = True
@@ -81,7 +83,7 @@ class TestLRUContainer:
         d.pop(1, None)
 
     def test_get(self) -> None:
-        d = Container(5)
+        d = Container[int, bool](5)
 
         for i in range(5):
             d[i] = True
@@ -92,8 +94,8 @@ class TestLRUContainer:
         r = d.get(5)
         assert r is None
 
-        r = d.get(5, 42)
-        assert r == 42
+        r = d.get(5, False)
+        assert r is False
 
         with pytest.raises(KeyError):
             d[5]
@@ -101,11 +103,11 @@ class TestLRUContainer:
     def test_disposal(self) -> None:
         evicted_items = []
 
-        def dispose_func(arg):
+        def dispose_func(arg: int) -> None:
             # Save the evicted datum for inspection
             evicted_items.append(arg)
 
-        d = Container(5, dispose_func=dispose_func)
+        d = Container[int, int](5, dispose_func=dispose_func)
         for i in range(5):
             d[i] = i
         assert list(d._container.keys()) == list(range(5))
@@ -122,7 +124,7 @@ class TestLRUContainer:
         assert evicted_items == [0, 1, 2, 3, 4, 5]
 
     def test_iter(self) -> None:
-        d = Container()
+        d = Container[None, None]()
 
         with pytest.raises(NotImplementedError):
             d.__iter__()
@@ -141,7 +143,7 @@ class NonMappingHeaderContainer:
 
 
 @pytest.fixture()
-def d():
+def d() -> HTTPHeaderDict:
     header_dict = HTTPHeaderDict(Cookie="foo")
     header_dict.add("cookie", "bar")
     return header_dict
@@ -149,12 +151,12 @@ def d():
 
 class TestHTTPHeaderDict:
     def test_create_from_kwargs(self) -> None:
-        h = HTTPHeaderDict(ab=1, cd=2, ef=3, gh=4)
+        h = HTTPHeaderDict(ab="1", cd="2", ef="3", gh="4")
         assert len(h) == 4
         assert "ab" in h
 
     def test_create_from_dict(self) -> None:
-        h = HTTPHeaderDict(dict(ab=1, cd=2, ef=3, gh=4))
+        h = HTTPHeaderDict(dict(ab="1", cd="2", ef="3", gh="4"))
         assert len(h) == 4
         assert "ab" in h
 
@@ -198,54 +200,54 @@ class TestHTTPHeaderDict:
         assert h is not org
         assert h == org
 
-    def test_setitem(self, d) -> None:
+    def test_setitem(self, d: HTTPHeaderDict) -> None:
         d["Cookie"] = "foo"
         assert d["cookie"] == "foo"
         d["cookie"] = "with, comma"
         assert d.getlist("cookie") == ["with, comma"]
 
-    def test_update(self, d) -> None:
+    def test_update(self, d: HTTPHeaderDict) -> None:
         d.update(dict(Cookie="foo"))
         assert d["cookie"] == "foo"
         d.update(dict(cookie="with, comma"))
         assert d.getlist("cookie") == ["with, comma"]
 
-    def test_delitem(self, d) -> None:
+    def test_delitem(self, d: HTTPHeaderDict) -> None:
         del d["cookie"]
         assert "cookie" not in d
         assert "COOKIE" not in d
 
-    def test_add_well_known_multiheader(self, d) -> None:
+    def test_add_well_known_multiheader(self, d: HTTPHeaderDict) -> None:
         d.add("COOKIE", "asdf")
         assert d.getlist("cookie") == ["foo", "bar", "asdf"]
         assert d["cookie"] == "foo, bar, asdf"
 
-    def test_add_comma_separated_multiheader(self, d) -> None:
+    def test_add_comma_separated_multiheader(self, d: HTTPHeaderDict) -> None:
         d.add("bar", "foo")
         d.add("BAR", "bar")
         d.add("Bar", "asdf")
         assert d.getlist("bar") == ["foo", "bar", "asdf"]
         assert d["bar"] == "foo, bar, asdf"
 
-    def test_extend_from_list(self, d) -> None:
+    def test_extend_from_list(self, d: HTTPHeaderDict) -> None:
         d.extend([("set-cookie", "100"), ("set-cookie", "200"), ("set-cookie", "300")])
         assert d["set-cookie"] == "100, 200, 300"
 
-    def test_extend_from_dict(self, d) -> None:
+    def test_extend_from_dict(self, d: HTTPHeaderDict) -> None:
         d.extend(dict(cookie="asdf"), b="100")
         assert d["cookie"] == "foo, bar, asdf"
         assert d["b"] == "100"
         d.add("cookie", "with, comma")
         assert d.getlist("cookie") == ["foo", "bar", "asdf", "with, comma"]
 
-    def test_extend_from_container(self, d) -> None:
+    def test_extend_from_container(self, d: HTTPHeaderDict) -> None:
         h = NonMappingHeaderContainer(Cookie="foo", e="foofoo")
         d.extend(h)
         assert d["cookie"] == "foo, bar, foo"
         assert d["e"] == "foofoo"
         assert len(d) == 2
 
-    def test_extend_from_headerdict(self, d) -> None:
+    def test_extend_from_headerdict(self, d: HTTPHeaderDict) -> None:
         h = HTTPHeaderDict(Cookie="foo", e="foofoo")
         d.extend(h)
         assert d["cookie"] == "foo, bar, foo"
@@ -253,28 +255,30 @@ class TestHTTPHeaderDict:
         assert len(d) == 2
 
     @pytest.mark.parametrize("args", [(1, 2), (1, 2, 3, 4, 5)])
-    def test_extend_with_wrong_number_of_args_is_typeerror(self, d, args) -> None:
+    def test_extend_with_wrong_number_of_args_is_typeerror(
+        self, d: HTTPHeaderDict, args: Tuple[object, ...]
+    ) -> None:
         with pytest.raises(
             TypeError, match=r"extend\(\) takes at most 1 positional arguments"
         ):
             d.extend(*args)
 
-    def test_copy(self, d) -> None:
+    def test_copy(self, d: HTTPHeaderDict) -> None:
         h = d.copy()
         assert d is not h
         assert d == h
 
-    def test_getlist(self, d) -> None:
+    def test_getlist(self, d: HTTPHeaderDict) -> None:
         assert d.getlist("cookie") == ["foo", "bar"]
         assert d.getlist("Cookie") == ["foo", "bar"]
         assert d.getlist("b") == []
         d.add("b", "asdf")
         assert d.getlist("b") == ["asdf"]
 
-    def test_getlist_after_copy(self, d) -> None:
+    def test_getlist_after_copy(self, d: HTTPHeaderDict) -> None:
         assert d.getlist("cookie") == HTTPHeaderDict(d).getlist("cookie")
 
-    def test_equal(self, d) -> None:
+    def test_equal(self, d: HTTPHeaderDict) -> None:
         b = HTTPHeaderDict(cookie="foo, bar")
         c = NonMappingHeaderContainer(cookie="foo, bar")
         e = [("cookie", "foo, bar")]
@@ -283,7 +287,7 @@ class TestHTTPHeaderDict:
         assert d == e
         assert d != 2
 
-    def test_not_equal(self, d) -> None:
+    def test_not_equal(self, d: HTTPHeaderDict) -> None:
         b = HTTPHeaderDict(cookie="foo, bar")
         c = NonMappingHeaderContainer(cookie="foo, bar")
         e = [("cookie", "foo, bar")]
@@ -292,7 +296,7 @@ class TestHTTPHeaderDict:
         assert not (d != e)
         assert d != 2
 
-    def test_pop(self, d) -> None:
+    def test_pop(self, d: HTTPHeaderDict) -> None:
         key = "Cookie"
         a = d[key]
         b = d.pop(key)
@@ -303,23 +307,23 @@ class TestHTTPHeaderDict:
         dummy = object()
         assert dummy is d.pop(key, dummy)
 
-    def test_discard(self, d) -> None:
+    def test_discard(self, d: HTTPHeaderDict) -> None:
         d.discard("cookie")
         assert "cookie" not in d
         d.discard("cookie")
 
-    def test_len(self, d) -> None:
+    def test_len(self, d: HTTPHeaderDict) -> None:
         assert len(d) == 1
         d.add("cookie", "bla")
         d.add("asdf", "foo")
         # len determined by unique fieldnames
         assert len(d) == 2
 
-    def test_repr(self, d) -> None:
+    def test_repr(self, d: HTTPHeaderDict) -> None:
         rep = "HTTPHeaderDict({'Cookie': 'foo, bar'})"
         assert repr(d) == rep
 
-    def test_items(self, d) -> None:
+    def test_items(self, d: HTTPHeaderDict) -> None:
         items = d.items()
         assert len(items) == 2
         assert list(items) == [
@@ -330,10 +334,10 @@ class TestHTTPHeaderDict:
         assert ("Cookie", "bar") in items
         assert ("X-Some-Header", "foo") not in items
         assert ("Cookie", "not_present") not in items
-        assert ("Cookie", 1) not in items
-        assert "Cookie" not in items
+        assert ("Cookie", 1) not in items  # type: ignore[comparison-overlap]
+        assert "Cookie" not in items  # type: ignore[comparison-overlap]
 
-    def test_dict_conversion(self, d) -> None:
+    def test_dict_conversion(self, d: HTTPHeaderDict) -> None:
         # Also tested in connectionpool, needs to preserve case
         hdict = {
             "Content-Length": "0",
@@ -344,19 +348,19 @@ class TestHTTPHeaderDict:
         assert hdict == h
         assert hdict == dict(HTTPHeaderDict(hdict))
 
-    def test_string_enforcement(self, d) -> None:
+    def test_string_enforcement(self, d: HTTPHeaderDict) -> None:
         # This currently throws AttributeError on key.lower(), should
         # probably be something nicer
         with pytest.raises(Exception):
-            d[3] = 5
+            d[3] = 5  # type: ignore[index,assignment]
         with pytest.raises(Exception):
-            d.add(3, 4)
+            d.add(3, 4)  # type: ignore[arg-type]
         with pytest.raises(Exception):
-            del d[3]
+            del d[3]  # type: ignore[arg-type]
         with pytest.raises(Exception):
-            HTTPHeaderDict({3: 3})
+            HTTPHeaderDict({3: 3})  # type: ignore[arg-type]
 
-    def test_dunder_contains(self, d) -> None:
+    def test_dunder_contains(self, d: HTTPHeaderDict) -> None:
         """
         Test:
 
@@ -373,6 +377,6 @@ class TestHTTPHeaderDict:
         assert "Not a cookie" not in d
 
         marker = object()
-        d._container[marker] = ["some", "strings"]
+        d._container[marker] = ["some", "strings"]  # type: ignore[index]
         assert marker not in d
         assert marker in d._container

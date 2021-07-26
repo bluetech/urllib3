@@ -21,7 +21,7 @@ from threading import Event
 from unittest import mock
 
 import pytest
-import trustme
+import trustme  # type: ignore[import]
 
 from dummyserver.server import (
     DEFAULT_CA,
@@ -346,7 +346,7 @@ class TestClientCerts(SocketDummyServerTestCase):
 
         # Different error is raised depending on context.
         if ssl_.IS_PYOPENSSL:
-            from OpenSSL.SSL import Error
+            from OpenSSL.SSL import Error  # type: ignore[import]
 
             expected_error = Error
         else:

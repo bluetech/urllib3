@@ -6,7 +6,7 @@ from test import SHORT_TIMEOUT
 from unittest.mock import patch
 
 import pytest
-import socks as py_socks
+import socks as py_socks  # type: ignore[import]
 
 from dummyserver.server import DEFAULT_CA, DEFAULT_CERTS
 from dummyserver.testcase import IPV4SocketDummyServerTestCase

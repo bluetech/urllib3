@@ -10,7 +10,7 @@ from .port_helpers import find_unused_port
 
 class TestProxyManager:
     @pytest.mark.parametrize("proxy_scheme", ["http", "https"])
-    def test_proxy_headers(self, proxy_scheme) -> None:
+    def test_proxy_headers(self, proxy_scheme: str) -> None:
         url = "http://pypi.org/project/urllib3/"
         proxy_url = f"{proxy_scheme}://something:1234"
         with ProxyManager(proxy_url) as p:

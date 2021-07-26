@@ -6,7 +6,7 @@ import tempfile
 from test import LONG_TIMEOUT, SHORT_TIMEOUT, onlySecureTransport, withPyOpenSSL
 
 import pytest
-import trustme
+import trustme  # type: ignore[import]
 
 from dummyserver.server import DEFAULT_CA, HAS_IPV6, get_unreachable_address
 from dummyserver.testcase import HTTPDummyProxyTestCase, IPv6HTTPDummyProxyTestCase

@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import pytest
 
 from urllib3.fields import RequestField
@@ -11,7 +13,9 @@ class TestMultipartEncoding:
     @pytest.mark.parametrize(
         "fields", [dict(k="v", k2="v2"), [("k", "v"), ("k2", "v2")]]
     )
-    def test_input_datastructures(self, fields) -> None:
+    def test_input_datastructures(
+        self, fields: List[Tuple[str, Union[str, bytes]]]
+    ) -> None:
         encoded, _ = encode_multipart_formdata(fields, boundary=BOUNDARY)
         assert encoded.count(BOUNDARY_BYTES) == 3
 
@@ -23,7 +27,7 @@ class TestMultipartEncoding:
             [("k", b"v"), ("k2", "v2")],
         ],
     )
-    def test_field_encoding(self, fields) -> None:
+    def test_field_encoding(self, fields: List[Tuple[str, Union[str, bytes]]]) -> None:
         encoded, content_type = encode_multipart_formdata(fields, boundary=BOUNDARY)
         expected = (
             b"--" + BOUNDARY_BYTES + b"\r\n"

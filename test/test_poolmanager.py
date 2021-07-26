@@ -1,5 +1,6 @@
 import socket
 from test import resolvesLocalhostFQDN
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -79,7 +80,7 @@ class TestPoolManager:
         assert len(p.pools) == 0
 
     @pytest.mark.parametrize("url", ["http://@", None])
-    def test_nohost(self, url) -> None:
+    def test_nohost(self, url: Optional[str]) -> None:
         p = PoolManager(5)
         with pytest.raises(LocationValueError):
             p.connection_from_url(url=url)

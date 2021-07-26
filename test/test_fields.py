@@ -1,3 +1,5 @@
+from typing import List, Optional, Union
+
 import pytest
 
 from urllib3.fields import (
@@ -19,7 +21,9 @@ class TestRequestField:
             (None, ["application/octet-stream"]),
         ],
     )
-    def test_guess_content_type(self, filename, content_types) -> None:
+    def test_guess_content_type(
+        self, filename: Optional[str], content_types: List[str]
+    ) -> None:
         assert guess_content_type(filename) in content_types
 
     def test_create(self) -> None:
@@ -63,7 +67,9 @@ class TestRequestField:
         ("value", "expect"),
         [("näme", "filename*=utf-8''n%C3%A4me"), (b"name", 'filename="name"')],
     )
-    def test_format_header_param_rfc2231_deprecated(self, value, expect) -> None:
+    def test_format_header_param_rfc2231_deprecated(
+        self, value: Union[bytes, str], expect: str
+    ) -> None:
         with pytest.deprecated_call(match=r"urllib3 v3\.0\.0"):
             param = format_header_param_rfc2231("filename", value)
 
@@ -91,7 +97,7 @@ class TestRequestField:
             ("newline \n\r", "newline %0A%0D"),
         ],
     )
-    def test_format_multipart_header_param(self, value, expect) -> None:
+    def test_format_multipart_header_param(self, value: str, expect: str) -> None:
         param = format_multipart_header_param("filename", value)
         assert param == f'filename="{expect}"'
 

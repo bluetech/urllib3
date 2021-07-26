@@ -1,7 +1,9 @@
+from typing import Optional, Tuple
 from unittest import mock
 
 import pytest
 
+from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import (
     ConnectTimeoutError,
     InvalidHeader,
@@ -12,6 +14,8 @@ from urllib3.exceptions import (
 )
 from urllib3.response import HTTPResponse
 from urllib3.util.retry import RequestHistory, Retry
+
+DUMMY_POOL = ConnectionPool("dummy")
 
 
 class TestRetry:
@@ -50,7 +54,7 @@ class TestRetry:
 
     def test_retry_higher_total_loses_vs_read(self) -> None:
         """ A lower read timeout than the total is honored """
-        error = ReadTimeoutError(None, "/", "read timed out")
+        error = ReadTimeoutError(DUMMY_POOL, "/", "read timed out")
         retry = Retry(read=2, total=3)
         retry = retry.increment(method="GET", error=error)
         retry = retry.increment(method="GET", error=error)
@@ -59,7 +63,7 @@ class TestRetry:
 
     def test_retry_total_none(self) -> None:
         """ if Total is none, connect error should take precedence """
-        error = ConnectTimeoutError()
+        error: Exception = ConnectTimeoutError()
         retry = Retry(connect=2, total=None)
         retry = retry.increment(error=error)
         retry = retry.increment(error=error)
@@ -67,7 +71,7 @@ class TestRetry:
             retry.increment(error=error)
         assert e.value.reason == error
 
-        error = ReadTimeoutError(None, "/", "read timed out")
+        error = ReadTimeoutError(DUMMY_POOL, "/", "read timed out")
         retry = Retry(connect=2, total=None)
         retry = retry.increment(method="GET", error=error)
         retry = retry.increment(method="GET", error=error)
@@ -112,7 +116,7 @@ class TestRetry:
 
     def test_retry_read_zero(self) -> None:
         """ No second chances on read timeouts, by default """
-        error = ReadTimeoutError(None, "/", "read timed out")
+        error = ReadTimeoutError(DUMMY_POOL, "/", "read timed out")
         retry = Retry(read=0)
         with pytest.raises(MaxRetryError) as e:
             retry.increment(method="GET", error=error)
@@ -190,7 +194,7 @@ class TestRetry:
         assert retry.is_retry("GET", status_code=418)
 
         # String status codes are not matched.
-        retry = Retry(total=1, status_forcelist=["418"])
+        retry = Retry(total=1, status_forcelist=["418"])  # type: ignore[list-item]
         assert not retry.is_retry("GET", status_code=418)
 
     def test_allowed_methods_with_status_forcelist(self) -> None:
@@ -210,7 +214,7 @@ class TestRetry:
         assert Retry(1).increment(method="GET").total == 0
 
     @pytest.mark.parametrize("total", [-1, 0])
-    def test_disabled(self, total) -> None:
+    def test_disabled(self, total: int) -> None:
         with pytest.raises(MaxRetryError):
             Retry(total).increment(method="GET")
 
@@ -218,7 +222,7 @@ class TestRetry:
         retry = Retry(total=0)
         with pytest.raises(MaxRetryError, match="None: read timed out") as e:
             retry = retry.increment(
-                method="GET", error=ReadTimeoutError(None, "/", "read timed out")
+                method="GET", error=ReadTimeoutError(DUMMY_POOL, "/", "read timed out")
             )
         assert "Caused by redirect" not in str(e.value)
 
@@ -248,10 +252,12 @@ class TestRetry:
         assert retry.history == tuple()
         connection_error = ConnectTimeoutError("conntimeout")
         retry = retry.increment("GET", "/test1", None, connection_error)
-        history = (RequestHistory("GET", "/test1", connection_error, None, None),)
+        history: Tuple[RequestHistory, ...] = (
+            RequestHistory("GET", "/test1", connection_error, None, None),
+        )
         assert retry.history == history
 
-        read_error = ReadTimeoutError(None, "/test2", "read timed out")
+        read_error = ReadTimeoutError(DUMMY_POOL, "/test2", "read timed out")
         retry = retry.increment("POST", "/test2", None, read_error)
         history = (
             RequestHistory("GET", "/test1", connection_error, None, None),
@@ -269,7 +275,7 @@ class TestRetry:
         assert retry.history == history
 
     def test_retry_method_not_allowed(self) -> None:
-        error = ReadTimeoutError(None, "/", "read timed out")
+        error = ReadTimeoutError(DUMMY_POOL, "/", "read timed out")
         retry = Retry()
         with pytest.raises(ReadTimeoutError):
             retry.increment(method="POST", error=error)
@@ -285,7 +291,7 @@ class TestRetry:
         assert list(retry.remove_headers_on_redirect) == ["x-api-secret"]
 
     @pytest.mark.parametrize("value", ["-1", "+1", "1.0", "\xb2"])  # \xb2 = ^2
-    def test_parse_retry_after_invalid(self, value) -> None:
+    def test_parse_retry_after_invalid(self, value: str) -> None:
         retry = Retry()
         with pytest.raises(InvalidHeader):
             retry.parse_retry_after(value)
@@ -293,13 +299,14 @@ class TestRetry:
     @pytest.mark.parametrize(
         "value, expected", [("0", 0), ("1000", 1000), ("\t42 ", 42)]
     )
-    def test_parse_retry_after(self, value, expected) -> None:
+    def test_parse_retry_after(self, value: str, expected: int) -> None:
         retry = Retry()
         assert retry.parse_retry_after(value) == expected
 
     @pytest.mark.parametrize("respect_retry_after_header", [True, False])
     def test_respect_retry_after_header_propagated(
-        self, respect_retry_after_header
+        self,
+        respect_retry_after_header: bool,
     ) -> None:
 
         retry = Retry(respect_retry_after_header=respect_retry_after_header)
@@ -338,7 +345,10 @@ class TestRetry:
     )
     @pytest.mark.usefixtures("stub_timezone")
     def test_respect_retry_after_header_sleep(
-        self, retry_after_header, respect_retry_after_header, sleep_duration
+        self,
+        retry_after_header: bool,
+        respect_retry_after_header: bool,
+        sleep_duration: Optional[int],
     ) -> None:
         retry = Retry(respect_retry_after_header=respect_retry_after_header)
 

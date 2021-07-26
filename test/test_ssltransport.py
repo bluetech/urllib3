@@ -2,6 +2,7 @@ import platform
 import select
 import socket
 import ssl
+from typing import Tuple
 from unittest import mock
 
 import pytest
@@ -15,7 +16,7 @@ from urllib3.util.ssltransport import SSLTransport
 PER_TEST_TIMEOUT = 60
 
 
-def server_client_ssl_contexts():
+def server_client_ssl_contexts() -> Tuple[ssl.SSLContext, ssl.SSLContext]:
     if hasattr(ssl, "PROTOCOL_TLS_SERVER"):
         server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     server_context.load_cert_chain(DEFAULT_CERTS["certfile"], DEFAULT_CERTS["keyfile"])
@@ -27,7 +28,7 @@ def server_client_ssl_contexts():
     return server_context, client_context
 
 
-def sample_request(binary=True):
+def sample_request(binary: bool = True):
     request = (
         b"GET http://www.testing.com/ HTTP/1.1\r\n"
         b"Host: www.testing.com\r\n"
@@ -37,24 +38,24 @@ def sample_request(binary=True):
     return request if binary else request.decode("utf-8")
 
 
-def validate_request(provided_request, binary=True):
+def validate_request(provided_request, binary: bool = True) -> None:
     assert provided_request is not None
     expected_request = sample_request(binary)
     assert provided_request == expected_request
 
 
-def sample_response(binary=True):
+def sample_response(binary: bool = True):
     response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"
     return response if binary else response.decode("utf-8")
 
 
-def validate_response(provided_response, binary=True):
+def validate_response(provided_response, binary: bool = True) -> None:
     assert provided_response is not None
     expected_response = sample_response(binary)
     assert provided_response == expected_response
 
 
-def validate_peercert(ssl_socket):
+def validate_peercert(ssl_socket: SSLTransport) -> None:
 
     binary_cert = ssl_socket.getpeercert(binary_form=True)
     assert type(binary_cert) == bytes
@@ -76,7 +77,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
     def setup_class(cls) -> None:
         cls.server_context, cls.client_context = server_client_ssl_contexts()
 
-    def start_dummy_server(self, handler=None):
+    def start_dummy_server(self, handler=None) -> None:
         def socket_handler(listener):
             sock = listener.accept()[0]
             with self.server_context.wrap_socket(sock, server_side=True) as ssock:

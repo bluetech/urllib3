@@ -3,8 +3,10 @@ import logging
 import os
 import platform
 import socket
+import ssl
 import sys
 import warnings
+from typing import List, Optional, Type
 
 import pytest
 
@@ -56,7 +58,7 @@ if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS") == "true":
     LONG_TIMEOUT = 0.5
 
 
-def _can_resolve(host):
+def _can_resolve(host: str) -> bool:
     """ Returns True if the system can resolve host to an address. """
     try:
         socket.getaddrinfo(host, None, socket.AF_UNSPEC)
@@ -65,9 +67,11 @@ def _can_resolve(host):
         return False
 
 
-def has_alpn(ctx_cls=None):
+def has_alpn(ctx_cls: Optional[Type[ssl.SSLContext]] = None) -> bool:
     """ Detect if ALPN support is enabled. """
-    ctx_cls = ctx_cls or util.SSLContext
+    if ctx_cls is None:
+        ctx_cls = util.SSLContext
+    assert ctx_cls is not None
     ctx = ctx_cls(protocol=ssl_.PROTOCOL_TLS)
     try:
         if hasattr(ctx, "set_alpn_protocols"):
@@ -84,7 +88,7 @@ def has_alpn(ctx_cls=None):
 RESOLVES_LOCALHOST_FQDN = _can_resolve("localhost.")
 
 
-def clear_warnings(cls=HTTPWarning):
+def clear_warnings(cls: Type[Warning] = HTTPWarning) -> None:
     new_filters = []
     for f in warnings.filters:
         if issubclass(f[2], cls):
@@ -93,7 +97,7 @@ def clear_warnings(cls=HTTPWarning):
     warnings.filters[:] = new_filters
 
 
-def setUp():
+def setUp() -> None:
     clear_warnings()
     warnings.simplefilter("ignore", HTTPWarning)
 
@@ -231,31 +235,31 @@ def withPyOpenSSL(test):
 
 
 class _ListHandler(logging.Handler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.records = []
+        self.records: List[logging.LogRecord] = []
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         self.records.append(record)
 
 
 class LogRecorder:
-    def __init__(self, target=logging.root):
+    def __init__(self, target: logging.Logger = logging.root) -> None:
         super().__init__()
         self._target = target
         self._handler = _ListHandler()
 
     @property
-    def records(self):
+    def records(self) -> List[logging.LogRecord]:
         return self._handler.records
 
-    def install(self):
+    def install(self) -> None:
         self._target.addHandler(self._handler)
 
-    def uninstall(self):
+    def uninstall(self) -> None:
         self._target.removeHandler(self._handler)
 
-    def __enter__(self):
+    def __enter__(self) -> List[logging.LogRecord]:
         self.install()
         return self.records
 
@@ -272,15 +276,15 @@ class ImportBlocker:
     specified cannot be imported, even if they are a builtin.
     """
 
-    def __init__(self, *namestoblock):
+    def __init__(self, *namestoblock: str) -> None:
         self.namestoblock = namestoblock
 
-    def find_module(self, fullname, path=None):
+    def find_module(self, fullname: str, path=None):
         if fullname in self.namestoblock:
             return self
         return None
 
-    def load_module(self, fullname):
+    def load_module(self, fullname: str):
         raise ImportError(f"import of {fullname} is blocked")
 
 
@@ -292,19 +296,19 @@ class ModuleStash:
     modules
     """
 
-    def __init__(self, namespace, modules=sys.modules):
+    def __init__(self, namespace, modules=sys.modules) -> None:
         self.namespace = namespace
         self.modules = modules
         self._data = {}
 
-    def stash(self):
+    def stash(self) -> None:
         self._data[self.namespace] = self.modules.pop(self.namespace, None)
 
         for module in list(self.modules.keys()):
             if module.startswith(self.namespace + "."):
                 self._data[module] = self.modules.pop(module)
 
-    def pop(self):
+    def pop(self) -> None:
         self.modules.pop(self.namespace, None)
 
         for module in list(self.modules.keys()):
