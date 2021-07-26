@@ -218,7 +218,7 @@ def handle_socks4_negotiation(sock, username=None):
 
 
 class TestSOCKSProxyManager:
-    def test_invalid_socks_version_is_valueerror(self):
+    def test_invalid_socks_version_is_valueerror(self) -> None:
         with pytest.raises(ValueError, match="Unable to determine SOCKS version"):
             socks.SOCKSProxyManager(proxy_url="http://example.org")
 
@@ -228,7 +228,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
     Test the SOCKS proxy in SOCKS5 mode.
     """
 
-    def test_basic_request(self):
+    def test_basic_request(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -261,7 +261,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             assert response.data == b""
             assert response.headers["Server"] == "SocksTestServer"
 
-    def test_local_dns(self):
+    def test_local_dns(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -294,7 +294,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             assert response.data == b""
             assert response.headers["Server"] == "SocksTestServer"
 
-    def test_correct_header_line(self):
+    def test_correct_header_line(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -328,7 +328,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             response = pm.request("GET", "http://example.com")
             assert response.status == 200
 
-    def test_connection_timeouts(self):
+    def test_connection_timeouts(self) -> None:
         event = threading.Event()
 
         def request_handler(listener):
@@ -344,14 +344,14 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             event.set()
 
     @patch("socks.create_connection")
-    def test_socket_timeout(self, create_connection):
+    def test_socket_timeout(self, create_connection) -> None:
         create_connection.side_effect = SocketTimeout()
         proxy_url = f"socks5h://{self.host}:{self.port}"
         with socks.SOCKSProxyManager(proxy_url) as pm:
             with pytest.raises(ConnectTimeoutError, match="timed out"):
                 pm.request("GET", "http://example.com", retries=False)
 
-    def test_connection_failure(self):
+    def test_connection_failure(self) -> None:
         event = threading.Event()
 
         def request_handler(listener):
@@ -365,7 +365,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             with pytest.raises(NewConnectionError):
                 pm.request("GET", "http://example.com", retries=False)
 
-    def test_proxy_rejection(self, monkeypatch):
+    def test_proxy_rejection(self, monkeypatch) -> None:
         _set_up_fake_getaddrinfo(monkeypatch)
         evt = threading.Event()
 
@@ -386,7 +386,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
                 pm.request("GET", "http://example.com", retries=False)
             evt.set()
 
-    def test_socks_with_password(self):
+    def test_socks_with_password(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -421,7 +421,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             assert response.data == b""
             assert response.headers["Server"] == "SocksTestServer"
 
-    def test_socks_with_auth_in_url(self):
+    def test_socks_with_auth_in_url(self) -> None:
         """
         Test when we have auth info in url, i.e.
         socks5://user:pass@host:port and no username/password as params
@@ -461,7 +461,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             assert response.data == b""
             assert response.headers["Server"] == "SocksTestServer"
 
-    def test_socks_with_invalid_password(self, monkeypatch):
+    def test_socks_with_invalid_password(self, monkeypatch) -> None:
         _set_up_fake_getaddrinfo(monkeypatch)
 
         def request_handler(listener):
@@ -482,7 +482,7 @@ class TestSocks5Proxy(IPV4SocketDummyServerTestCase):
             ):
                 pm.request("GET", "http://example.com", retries=False)
 
-    def test_source_address_works(self):
+    def test_source_address_works(self) -> None:
         expected_port = _get_free_port(self.host)
 
         def request_handler(listener):
@@ -527,7 +527,7 @@ class TestSOCKS4Proxy(IPV4SocketDummyServerTestCase):
     negotiation is done the two cases behave identically.
     """
 
-    def test_basic_request(self):
+    def test_basic_request(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -560,7 +560,7 @@ class TestSOCKS4Proxy(IPV4SocketDummyServerTestCase):
             assert response.headers["Server"] == "SocksTestServer"
             assert response.data == b""
 
-    def test_local_dns(self):
+    def test_local_dns(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -593,7 +593,7 @@ class TestSOCKS4Proxy(IPV4SocketDummyServerTestCase):
             assert response.headers["Server"] == "SocksTestServer"
             assert response.data == b""
 
-    def test_correct_header_line(self):
+    def test_correct_header_line(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -627,7 +627,7 @@ class TestSOCKS4Proxy(IPV4SocketDummyServerTestCase):
             response = pm.request("GET", "http://example.com")
             assert response.status == 200
 
-    def test_proxy_rejection(self, monkeypatch):
+    def test_proxy_rejection(self, monkeypatch) -> None:
         _set_up_fake_getaddrinfo(monkeypatch)
         evt = threading.Event()
 
@@ -648,7 +648,7 @@ class TestSOCKS4Proxy(IPV4SocketDummyServerTestCase):
                 pm.request("GET", "http://example.com", retries=False)
             evt.set()
 
-    def test_socks4_with_username(self):
+    def test_socks4_with_username(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -681,7 +681,7 @@ class TestSOCKS4Proxy(IPV4SocketDummyServerTestCase):
             assert response.data == b""
             assert response.headers["Server"] == "SocksTestServer"
 
-    def test_socks_with_invalid_username(self):
+    def test_socks_with_invalid_username(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 
@@ -701,7 +701,7 @@ class TestSOCKSWithTLS(IPV4SocketDummyServerTestCase):
     """
 
     @pytest.mark.skipif(not HAS_SSL, reason="No TLS available")
-    def test_basic_request(self):
+    def test_basic_request(self) -> None:
         def request_handler(listener):
             sock = listener.accept()[0]
 

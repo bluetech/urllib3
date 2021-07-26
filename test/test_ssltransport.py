@@ -73,7 +73,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
     """
 
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls) -> None:
         cls.server_context, cls.client_context = server_client_ssl_contexts()
 
     def start_dummy_server(self, handler=None):
@@ -88,7 +88,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
         self._start_server(chosen_handler)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_start_closed_socket(self):
+    def test_start_closed_socket(self) -> None:
         """ Errors generated from an unconnected socket should bubble up."""
         sock = socket.socket(socket.AF_INET)
         context = ssl.create_default_context()
@@ -97,7 +97,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
             SSLTransport(sock, context)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_close_after_handshake(self):
+    def test_close_after_handshake(self) -> None:
         """ Socket errors should be bubbled up """
         self.start_dummy_server()
 
@@ -110,7 +110,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
                 ssock.send(b"blaaargh")
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_wrap_existing_socket(self):
+    def test_wrap_existing_socket(self) -> None:
         """ Validates a single TLS layer can be established.  """
         self.start_dummy_server()
 
@@ -124,7 +124,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
             validate_response(response)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_unbuffered_text_makefile(self):
+    def test_unbuffered_text_makefile(self) -> None:
         self.start_dummy_server()
 
         sock = socket.create_connection((self.host, self.port))
@@ -138,7 +138,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
             validate_response(response)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_unwrap_existing_socket(self):
+    def test_unwrap_existing_socket(self) -> None:
         """
         Validates we can break up the TLS layer
         A full request/response is sent over TLS, and later over plain text.
@@ -174,7 +174,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
         validate_response(response)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_ssl_object_attributes(self):
+    def test_ssl_object_attributes(self) -> None:
         """ Ensures common ssl attributes are exposed """
         self.start_dummy_server()
 
@@ -202,7 +202,7 @@ class SingleTLSLayerTestCase(SocketDummyServerTestCase):
             validate_response(response)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_socket_object_attributes(self):
+    def test_socket_object_attributes(self) -> None:
         """ Ensures common socket attributes are exposed """
         self.start_dummy_server()
 
@@ -298,7 +298,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
     """
 
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls) -> None:
         cls.server_context, cls.client_context = server_client_ssl_contexts()
 
     @classmethod
@@ -309,7 +309,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
         cls.proxy_server.start_proxy_handler()
 
     @classmethod
-    def teardown_class(cls):
+    def teardown_class(cls) -> None:
         if hasattr(cls, "proxy_server"):
             cls.proxy_server.teardown_class()
         super().teardown_class()
@@ -332,7 +332,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
         cls._start_server(socket_handler)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_tls_in_tls_tunnel(self):
+    def test_tls_in_tls_tunnel(self) -> None:
         """
         Basic communication over the TLS in TLS tunnel.
         """
@@ -354,7 +354,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
                 validate_response(response)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_wrong_sni_hint(self):
+    def test_wrong_sni_hint(self) -> None:
         """
         Provides a wrong sni hint to validate an exception is thrown.
         """
@@ -374,7 +374,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
     @pytest.mark.parametrize("buffering", [None, 0])
-    def test_tls_in_tls_makefile_raw_rw_binary(self, buffering):
+    def test_tls_in_tls_makefile_raw_rw_binary(self, buffering) -> None:
         """
         Uses makefile with read, write and binary modes without buffering.
         """
@@ -409,7 +409,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
         reason="Skipping windows due to text makefile support",
     )
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_tls_in_tls_makefile_rw_text(self):
+    def test_tls_in_tls_makefile_rw_text(self) -> None:
         """
         Creates a separate buffer for reading and writing using text mode and
         utf-8 encoding.
@@ -441,7 +441,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
                 validate_response(response, binary=False)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_tls_in_tls_recv_into_sendall(self):
+    def test_tls_in_tls_recv_into_sendall(self) -> None:
         """
         Valides recv_into and sendall also work as expected. Other tests are
         using recv/send.
@@ -466,7 +466,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
                 validate_response(str_response, binary=False)
 
     @pytest.mark.timeout(PER_TEST_TIMEOUT)
-    def test_tls_in_tls_recv_into_unbuffered(self):
+    def test_tls_in_tls_recv_into_unbuffered(self) -> None:
         """
         Valides recv_into without a preallocated buffer.
         """
@@ -489,7 +489,7 @@ class TlsInTlsTestCase(SocketDummyServerTestCase):
 
 
 class TestSSLTransportWithMock:
-    def test_constructor_params(self):
+    def test_constructor_params(self) -> None:
         server_hostname = "example-domain.com"
         sock = mock.Mock()
         context = mock.create_autospec(ssl_.SSLContext)
@@ -501,7 +501,7 @@ class TestSSLTransportWithMock:
         )
         assert not ssl_transport.suppress_ragged_eofs
 
-    def test_various_flags_errors(self):
+    def test_various_flags_errors(self) -> None:
         server_hostname = "example-domain.com"
         sock = mock.Mock()
         context = mock.create_autospec(ssl_.SSLContext)
@@ -520,7 +520,7 @@ class TestSSLTransportWithMock:
         with pytest.raises(ValueError):
             ssl_transport.send(None, flags=1)
 
-    def test_makefile_wrong_mode_error(self):
+    def test_makefile_wrong_mode_error(self) -> None:
         server_hostname = "example-domain.com"
         sock = mock.Mock()
         context = mock.create_autospec(ssl_.SSLContext)
@@ -530,7 +530,7 @@ class TestSSLTransportWithMock:
         with pytest.raises(ValueError):
             ssl_transport.makefile(mode="x")
 
-    def test_wrap_ssl_read_error(self):
+    def test_wrap_ssl_read_error(self) -> None:
         server_hostname = "example-domain.com"
         sock = mock.Mock()
         context = mock.create_autospec(ssl_.SSLContext)

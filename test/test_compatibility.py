@@ -5,7 +5,7 @@ from urllib3.response import HTTPResponse
 
 
 class TestCookiejar:
-    def test_extract(self):
+    def test_extract(self) -> None:
         request = urllib.request.Request("http://google.com")
         cookiejar = http.cookiejar.CookieJar()
         response = HTTPResponse()

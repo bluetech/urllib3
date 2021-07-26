@@ -51,32 +51,32 @@ def sock():
 
 
 class TestLegacyResponse:
-    def test_getheaders(self):
+    def test_getheaders(self) -> None:
         headers = {"host": "example.com"}
         r = HTTPResponse(headers=headers)
         assert r.getheaders() == [("host", "example.com")]
 
-    def test_getheader(self):
+    def test_getheader(self) -> None:
         headers = {"host": "example.com"}
         r = HTTPResponse(headers=headers)
         assert r.getheader("host") == "example.com"
 
 
 class TestResponse:
-    def test_cache_content(self):
+    def test_cache_content(self) -> None:
         r = HTTPResponse("foo")
         assert r.data == "foo"
         assert r._body == "foo"
 
-    def test_default(self):
+    def test_default(self) -> None:
         r = HTTPResponse()
         assert r.data is None
 
-    def test_none(self):
+    def test_none(self) -> None:
         r = HTTPResponse(None)
         assert r.data is None
 
-    def test_preload(self):
+    def test_preload(self) -> None:
         fp = BytesIO(b"foo")
 
         r = HTTPResponse(fp, preload_content=True)
@@ -84,7 +84,7 @@ class TestResponse:
         assert fp.tell() == len(b"foo")
         assert r.data == b"foo"
 
-    def test_no_preload(self):
+    def test_no_preload(self) -> None:
         fp = BytesIO(b"foo")
 
         r = HTTPResponse(fp, preload_content=False)
@@ -93,12 +93,12 @@ class TestResponse:
         assert r.data == b"foo"
         assert fp.tell() == len(b"foo")
 
-    def test_decode_bad_data(self):
+    def test_decode_bad_data(self) -> None:
         fp = BytesIO(b"\x00" * 10)
         with pytest.raises(DecodeError):
             HTTPResponse(fp, headers={"content-encoding": "deflate"})
 
-    def test_reference_read(self):
+    def test_reference_read(self) -> None:
         fp = BytesIO(b"foo")
         r = HTTPResponse(fp, preload_content=False)
 
@@ -107,7 +107,7 @@ class TestResponse:
         assert r.read() == b""
         assert r.read() == b""
 
-    def test_decode_deflate(self):
+    def test_decode_deflate(self) -> None:
         data = zlib.compress(b"foo")
 
         fp = BytesIO(data)
@@ -115,7 +115,7 @@ class TestResponse:
 
         assert r.data == b"foo"
 
-    def test_decode_deflate_case_insensitve(self):
+    def test_decode_deflate_case_insensitve(self) -> None:
         data = zlib.compress(b"foo")
 
         fp = BytesIO(data)
@@ -123,7 +123,7 @@ class TestResponse:
 
         assert r.data == b"foo"
 
-    def test_chunked_decoding_deflate(self):
+    def test_chunked_decoding_deflate(self) -> None:
         data = zlib.compress(b"foo")
 
         fp = BytesIO(data)
@@ -141,7 +141,7 @@ class TestResponse:
         assert r.read() == b""
         assert r.read() == b""
 
-    def test_chunked_decoding_deflate2(self):
+    def test_chunked_decoding_deflate2(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -159,7 +159,7 @@ class TestResponse:
         assert r.read() == b""
         assert r.read() == b""
 
-    def test_chunked_decoding_gzip(self):
+    def test_chunked_decoding_gzip(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -175,7 +175,7 @@ class TestResponse:
         assert r.read() == b""
         assert r.read() == b""
 
-    def test_decode_gzip_multi_member(self):
+    def test_decode_gzip_multi_member(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -186,12 +186,12 @@ class TestResponse:
 
         assert r.data == b"foofoofoo"
 
-    def test_decode_gzip_error(self):
+    def test_decode_gzip_error(self) -> None:
         fp = BytesIO(b"foo")
         with pytest.raises(DecodeError):
             HTTPResponse(fp, headers={"content-encoding": "gzip"})
 
-    def test_decode_gzip_swallow_garbage(self):
+    def test_decode_gzip_swallow_garbage(self) -> None:
         # When data comes from multiple calls to read(), data after
         # the first zlib error (here triggered by garbage) should be
         # ignored.
@@ -212,7 +212,7 @@ class TestResponse:
 
         assert ret == b"foofoofoo"
 
-    def test_chunked_decoding_gzip_swallow_garbage(self):
+    def test_chunked_decoding_gzip_swallow_garbage(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -224,7 +224,7 @@ class TestResponse:
         assert r.data == b"foofoofoo"
 
     @onlyBrotli()
-    def test_decode_brotli(self):
+    def test_decode_brotli(self) -> None:
         data = brotli.compress(b"foo")
 
         fp = BytesIO(data)
@@ -232,7 +232,7 @@ class TestResponse:
         assert r.data == b"foo"
 
     @onlyBrotli()
-    def test_chunked_decoding_brotli(self):
+    def test_chunked_decoding_brotli(self) -> None:
         data = brotli.compress(b"foobarbaz")
 
         fp = BytesIO(data)
@@ -246,12 +246,12 @@ class TestResponse:
         assert ret == b"foobarbaz"
 
     @onlyBrotli()
-    def test_decode_brotli_error(self):
+    def test_decode_brotli_error(self) -> None:
         fp = BytesIO(b"foo")
         with pytest.raises(DecodeError):
             HTTPResponse(fp, headers={"content-encoding": "br"})
 
-    def test_multi_decoding_deflate_deflate(self):
+    def test_multi_decoding_deflate_deflate(self) -> None:
         data = zlib.compress(zlib.compress(b"foo"))
 
         fp = BytesIO(data)
@@ -259,7 +259,7 @@ class TestResponse:
 
         assert r.data == b"foo"
 
-    def test_multi_decoding_deflate_gzip(self):
+    def test_multi_decoding_deflate_gzip(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         data = compress.compress(zlib.compress(b"foo"))
         data += compress.flush()
@@ -269,7 +269,7 @@ class TestResponse:
 
         assert r.data == b"foo"
 
-    def test_multi_decoding_gzip_gzip(self):
+    def test_multi_decoding_gzip_gzip(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -283,12 +283,12 @@ class TestResponse:
 
         assert r.data == b"foo"
 
-    def test_body_blob(self):
+    def test_body_blob(self) -> None:
         resp = HTTPResponse(b"foo")
         assert resp.data == b"foo"
         assert resp.closed
 
-    def test_io(self, sock):
+    def test_io(self, sock) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(fp, preload_content=False)
 
@@ -324,7 +324,7 @@ class TestResponse:
         with pytest.raises(IOError):
             resp3.fileno()
 
-    def test_io_closed_consistently(self, sock):
+    def test_io_closed_consistently(self, sock) -> None:
         try:
             hlr = httplib.HTTPResponse(sock)
             hlr.fp = BytesIO(b"foo")
@@ -343,7 +343,7 @@ class TestResponse:
         finally:
             hlr.close()
 
-    def test_io_bufferedreader(self):
+    def test_io_bufferedreader(self) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(fp, preload_content=False)
         br = BufferedReader(resp)
@@ -373,7 +373,7 @@ class TestResponse:
         while not br.closed:
             br.read(5)
 
-    def test_io_not_autoclose_bufferedreader(self):
+    def test_io_not_autoclose_bufferedreader(self) -> None:
         fp = BytesIO(b"hello\nworld")
         resp = HTTPResponse(fp, preload_content=False, auto_close=False)
         reader = BufferedReader(resp)
@@ -390,7 +390,7 @@ class TestResponse:
         with pytest.raises(ValueError, match="readline of closed file"):
             next(reader)
 
-    def test_io_textiowrapper(self):
+    def test_io_textiowrapper(self) -> None:
         fp = BytesIO(b"\xc3\xa4\xc3\xb6\xc3\xbc\xc3\x9f")
         resp = HTTPResponse(fp, preload_content=False)
         br = TextIOWrapper(resp, encoding="utf8")
@@ -409,7 +409,7 @@ class TestResponse:
         with pytest.raises(ValueError, match="I/O operation on closed file.?"):
             list(TextIOWrapper(resp))
 
-    def test_io_not_autoclose_textiowrapper(self):
+    def test_io_not_autoclose_textiowrapper(self) -> None:
         fp = BytesIO(
             b"\xc3\xa4\xc3\xb6\xc3\xbc\xc3\x9f\n\xce\xb1\xce\xb2\xce\xb3\xce\xb4"
         )
@@ -428,7 +428,7 @@ class TestResponse:
         with pytest.raises(ValueError, match="I/O operation on closed file.?"):
             next(reader)
 
-    def test_streaming(self):
+    def test_streaming(self) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(fp, preload_content=False)
         stream = resp.stream(2, decode_content=False)
@@ -438,7 +438,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_streaming_tell(self):
+    def test_streaming_tell(self) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(fp, preload_content=False)
         stream = resp.stream(2, decode_content=False)
@@ -456,7 +456,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_gzipped_streaming(self):
+    def test_gzipped_streaming(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -472,7 +472,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_gzipped_streaming_tell(self):
+    def test_gzipped_streaming_tell(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
         uncompressed_data = b"foo"
         data = compress.compress(uncompressed_data)
@@ -493,7 +493,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_deflate_streaming_tell_intermediate_point(self):
+    def test_deflate_streaming_tell_intermediate_point(self) -> None:
         # Ensure that ``tell()`` returns the correct number of bytes when
         # part-way through streaming compressed content.
         NUMBER_OF_READS = 10
@@ -546,7 +546,7 @@ class TestResponse:
         # Check that the end of the stream is in the correct place
         assert len(ZLIB_PAYLOAD) == end_of_stream
 
-    def test_deflate_streaming(self):
+    def test_deflate_streaming(self) -> None:
         data = zlib.compress(b"foo")
 
         fp = BytesIO(data)
@@ -560,7 +560,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_deflate2_streaming(self):
+    def test_deflate2_streaming(self) -> None:
         compress = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
         data = compress.compress(b"foo")
         data += compress.flush()
@@ -576,7 +576,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_empty_stream(self):
+    def test_empty_stream(self) -> None:
         fp = BytesIO(b"")
         resp = HTTPResponse(fp, preload_content=False)
         stream = resp.stream(2, decode_content=False)
@@ -584,19 +584,19 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_length_no_header(self):
+    def test_length_no_header(self) -> None:
         fp = BytesIO(b"12345")
         resp = HTTPResponse(fp, preload_content=False)
         assert resp.length_remaining is None
 
-    def test_length_w_valid_header(self):
+    def test_length_w_valid_header(self) -> None:
         headers = {"content-length": "5"}
         fp = BytesIO(b"12345")
 
         resp = HTTPResponse(fp, headers=headers, preload_content=False)
         assert resp.length_remaining == 5
 
-    def test_length_w_bad_header(self):
+    def test_length_w_bad_header(self) -> None:
         garbage = {"content-length": "foo"}
         fp = BytesIO(b"12345")
 
@@ -607,7 +607,7 @@ class TestResponse:
         resp = HTTPResponse(fp, headers=garbage, preload_content=False)
         assert resp.length_remaining is None
 
-    def test_length_when_chunked(self):
+    def test_length_when_chunked(self) -> None:
         # This is expressly forbidden in RFC 7230 sec 3.3.2
         # We fall back to chunked in this case and try to
         # handle response ignoring content length.
@@ -617,7 +617,7 @@ class TestResponse:
         resp = HTTPResponse(fp, headers=headers, preload_content=False)
         assert resp.length_remaining is None
 
-    def test_length_with_multiple_content_lengths(self):
+    def test_length_with_multiple_content_lengths(self) -> None:
         headers = {"content-length": "5, 5, 5"}
         garbage = {"content-length": "5, 42"}
         fp = BytesIO(b"abcde")
@@ -628,7 +628,7 @@ class TestResponse:
         with pytest.raises(InvalidHeader):
             HTTPResponse(fp, headers=garbage, preload_content=False)
 
-    def test_length_after_read(self):
+    def test_length_after_read(self) -> None:
         headers = {"content-length": "5"}
 
         # Test no defined length
@@ -650,7 +650,7 @@ class TestResponse:
         next(data)
         assert resp.length_remaining == 3
 
-    def test_mock_httpresponse_stream(self):
+    def test_mock_httpresponse_stream(self) -> None:
         # Mock out a HTTP Request that does enough to make it through urllib3's
         # read() and close() calls, and also exhausts and underlying file
         # object.
@@ -678,7 +678,7 @@ class TestResponse:
         with pytest.raises(StopIteration):
             next(stream)
 
-    def test_mock_transfer_encoding_chunked(self):
+    def test_mock_transfer_encoding_chunked(self) -> None:
         stream = [b"fo", b"o", b"bar"]
         fp = MockChunkedEncodingResponse(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -690,7 +690,7 @@ class TestResponse:
         for i, c in enumerate(resp.stream()):
             assert c == stream[i]
 
-    def test_mock_gzipped_transfer_encoding_chunked_decoded(self):
+    def test_mock_gzipped_transfer_encoding_chunked_decoded(self) -> None:
         """Show that we can decode the gzipped and chunked body."""
 
         def stream():
@@ -713,7 +713,7 @@ class TestResponse:
 
         assert b"foobar" == data
 
-    def test_mock_transfer_encoding_chunked_custom_read(self):
+    def test_mock_transfer_encoding_chunked_custom_read(self) -> None:
         stream = [b"foooo", b"bbbbaaaaar"]
         fp = MockChunkedEncodingResponse(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -727,7 +727,7 @@ class TestResponse:
         response = list(resp.read_chunked(2))
         assert expected_response == response
 
-    def test_mock_transfer_encoding_chunked_unlmtd_read(self):
+    def test_mock_transfer_encoding_chunked_unlmtd_read(self) -> None:
         stream = [b"foooo", b"bbbbaaaaar"]
         fp = MockChunkedEncodingResponse(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -739,14 +739,14 @@ class TestResponse:
         )
         assert stream == list(resp.read_chunked())
 
-    def test_read_not_chunked_response_as_chunks(self):
+    def test_read_not_chunked_response_as_chunks(self) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(fp, preload_content=False)
         r = resp.read_chunked()
         with pytest.raises(ResponseNotChunked):
             next(r)
 
-    def test_read_chunked_not_supported(self):
+    def test_read_chunked_not_supported(self) -> None:
         fp = BytesIO(b"foo")
         resp = HTTPResponse(
             fp, preload_content=False, headers={"transfer-encoding": "chunked"}
@@ -755,7 +755,7 @@ class TestResponse:
         with pytest.raises(BodyNotHttplibCompatible):
             next(r)
 
-    def test_buggy_incomplete_read(self):
+    def test_buggy_incomplete_read(self) -> None:
         # Simulate buggy versions of Python (<2.7.4)
         # See http://bugs.python.org/issue16298
         content_length = 1337
@@ -774,7 +774,7 @@ class TestResponse:
         assert orig_ex.partial == 0
         assert orig_ex.expected == content_length
 
-    def test_incomplete_chunk(self):
+    def test_incomplete_chunk(self) -> None:
         stream = [b"foooo", b"bbbbaaaaar"]
         fp = MockChunkedIncompleteRead(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -790,7 +790,7 @@ class TestResponse:
         orig_ex = ctx.value.args[1]
         assert isinstance(orig_ex, httplib_IncompleteRead)
 
-    def test_invalid_chunk_length(self):
+    def test_invalid_chunk_length(self) -> None:
         stream = [b"foooo", b"bbbbaaaaar"]
         fp = MockChunkedInvalidChunkLength(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -807,7 +807,7 @@ class TestResponse:
         assert isinstance(orig_ex, InvalidChunkLength)
         assert orig_ex.length == fp.BAD_LENGTH_LINE.encode()
 
-    def test_chunked_response_without_crlf_on_end(self):
+    def test_chunked_response_without_crlf_on_end(self) -> None:
         stream = [b"foo", b"bar", b"baz"]
         fp = MockChunkedEncodingWithoutCRLFOnEnd(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -819,7 +819,7 @@ class TestResponse:
         )
         assert stream == list(resp.stream())
 
-    def test_chunked_response_with_extensions(self):
+    def test_chunked_response_with_extensions(self) -> None:
         stream = [b"foo", b"bar"]
         fp = MockChunkedEncodingWithExtensions(stream)
         r = httplib.HTTPResponse(MockSock)
@@ -831,7 +831,7 @@ class TestResponse:
         )
         assert stream == list(resp.stream())
 
-    def test_chunked_head_response(self):
+    def test_chunked_head_response(self) -> None:
         r = httplib.HTTPResponse(MockSock, method="HEAD")
         r.chunked = True
         r.chunk_left = None
@@ -849,13 +849,13 @@ class TestResponse:
             continue
         resp.release_conn.assert_called_once_with()
 
-    def test_get_case_insensitive_headers(self):
+    def test_get_case_insensitive_headers(self) -> None:
         headers = {"host": "example.com"}
         r = HTTPResponse(headers=headers)
         assert r.headers.get("host") == "example.com"
         assert r.headers.get("Host") == "example.com"
 
-    def test_retries(self):
+    def test_retries(self) -> None:
         fp = BytesIO(b"")
         resp = HTTPResponse(fp)
         assert resp.retries is None
@@ -863,13 +863,13 @@ class TestResponse:
         resp = HTTPResponse(fp, retries=retry)
         assert resp.retries == retry
 
-    def test_geturl(self):
+    def test_geturl(self) -> None:
         fp = BytesIO(b"")
         request_url = "https://example.com"
         resp = HTTPResponse(fp, request_url=request_url)
         assert resp.geturl() == request_url
 
-    def test_geturl_retries(self):
+    def test_geturl_retries(self) -> None:
         fp = BytesIO(b"")
         resp = HTTPResponse(fp, request_url="http://example.com")
         request_histories = [
@@ -902,14 +902,14 @@ class TestResponse:
             (b"Hello\nworld\n\n\n!", [b"Hello\n", b"world\n", b"\n", b"\n", b"!"]),
         ],
     )
-    def test__iter__(self, payload, expected_stream):
+    def test__iter__(self, payload, expected_stream) -> None:
         actual_stream = []
         for chunk in HTTPResponse(BytesIO(payload), preload_content=False):
             actual_stream.append(chunk)
 
         assert actual_stream == expected_stream
 
-    def test__iter__decode_content(self):
+    def test__iter__decode_content(self) -> None:
         def stream():
             # Set up a generator to chunk the gzipped body
             compress = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
@@ -930,7 +930,7 @@ class TestResponse:
 
         assert b"foo\nbar" == data
 
-    def test_non_timeout_ssl_error_on_read(self):
+    def test_non_timeout_ssl_error_on_read(self) -> None:
         mac_error = ssl.SSLError(
             "SSL routines", "ssl3_get_record", "decryption failed or bad record mac"
         )

@@ -15,7 +15,7 @@ from urllib3.util.retry import RequestHistory, Retry
 
 
 class TestRetry:
-    def test_string(self):
+    def test_string(self) -> None:
         """ Retry string representation looks the way we expect """
         retry = Retry()
         assert (
@@ -29,7 +29,7 @@ class TestRetry:
             == "Retry(total=7, connect=None, read=None, redirect=None, status=None)"
         )
 
-    def test_retry_both_specified(self):
+    def test_retry_both_specified(self) -> None:
         """Total can win if it's lower than the connect value"""
         error = ConnectTimeoutError()
         retry = Retry(connect=3, total=2)
@@ -39,7 +39,7 @@ class TestRetry:
             retry.increment(error=error)
         assert e.value.reason == error
 
-    def test_retry_higher_total_loses(self):
+    def test_retry_higher_total_loses(self) -> None:
         """ A lower connect timeout than the total is honored """
         error = ConnectTimeoutError()
         retry = Retry(connect=2, total=3)
@@ -48,7 +48,7 @@ class TestRetry:
         with pytest.raises(MaxRetryError):
             retry.increment(error=error)
 
-    def test_retry_higher_total_loses_vs_read(self):
+    def test_retry_higher_total_loses_vs_read(self) -> None:
         """ A lower read timeout than the total is honored """
         error = ReadTimeoutError(None, "/", "read timed out")
         retry = Retry(read=2, total=3)
@@ -57,7 +57,7 @@ class TestRetry:
         with pytest.raises(MaxRetryError):
             retry.increment(method="GET", error=error)
 
-    def test_retry_total_none(self):
+    def test_retry_total_none(self) -> None:
         """ if Total is none, connect error should take precedence """
         error = ConnectTimeoutError()
         retry = Retry(connect=2, total=None)
@@ -74,7 +74,7 @@ class TestRetry:
         retry = retry.increment(method="GET", error=error)
         assert not retry.is_exhausted()
 
-    def test_retry_default(self):
+    def test_retry_default(self) -> None:
         """ If no value is specified, should retry connects 3 times """
         retry = Retry()
         assert retry.total == 10
@@ -96,7 +96,7 @@ class TestRetry:
         assert Retry(0).raise_on_redirect
         assert not Retry(False).raise_on_redirect
 
-    def test_retry_other(self):
+    def test_retry_other(self) -> None:
         """ If an unexpected error is raised, should retry other times """
         other_error = SSLError()
         retry = Retry(connect=1)
@@ -110,7 +110,7 @@ class TestRetry:
             retry.increment(error=other_error)
         assert e.value.reason == other_error
 
-    def test_retry_read_zero(self):
+    def test_retry_read_zero(self) -> None:
         """ No second chances on read timeouts, by default """
         error = ReadTimeoutError(None, "/", "read timed out")
         retry = Retry(read=0)
@@ -118,7 +118,7 @@ class TestRetry:
             retry.increment(method="GET", error=error)
         assert e.value.reason == error
 
-    def test_status_counter(self):
+    def test_status_counter(self) -> None:
         resp = HTTPResponse(status=400)
         retry = Retry(status=2)
         retry = retry.increment(response=resp)
@@ -127,7 +127,7 @@ class TestRetry:
         with pytest.raises(MaxRetryError, match=msg):
             retry.increment(response=resp)
 
-    def test_backoff(self):
+    def test_backoff(self) -> None:
         """ Backoff is computed correctly """
         max_backoff = Retry.BACKOFF_MAX
 
@@ -153,14 +153,14 @@ class TestRetry:
 
         assert retry.get_backoff_time() == max_backoff
 
-    def test_zero_backoff(self):
+    def test_zero_backoff(self) -> None:
         retry = Retry()
         assert retry.get_backoff_time() == 0
         retry = retry.increment(method="GET")
         retry = retry.increment(method="GET")
         assert retry.get_backoff_time() == 0
 
-    def test_backoff_reset_after_redirect(self):
+    def test_backoff_reset_after_redirect(self) -> None:
         retry = Retry(total=100, redirect=5, backoff_factor=0.2)
         retry = retry.increment(method="GET")
         retry = retry.increment(method="GET")
@@ -172,14 +172,14 @@ class TestRetry:
         retry = retry.increment(method="GET")
         assert retry.get_backoff_time() == 0.4
 
-    def test_sleep(self):
+    def test_sleep(self) -> None:
         # sleep a very small amount of time so our code coverage is happy
         retry = Retry(backoff_factor=0.0001)
         retry = retry.increment(method="GET")
         retry = retry.increment(method="GET")
         retry.sleep()
 
-    def test_status_forcelist(self):
+    def test_status_forcelist(self) -> None:
         retry = Retry(status_forcelist=range(500, 600))
         assert not retry.is_retry("GET", status_code=200)
         assert not retry.is_retry("GET", status_code=400)
@@ -193,7 +193,7 @@ class TestRetry:
         retry = Retry(total=1, status_forcelist=["418"])
         assert not retry.is_retry("GET", status_code=418)
 
-    def test_allowed_methods_with_status_forcelist(self):
+    def test_allowed_methods_with_status_forcelist(self) -> None:
         # Falsey allowed_methods means to retry on any method.
         retry = Retry(status_forcelist=[500], allowed_methods=None)
         assert retry.is_retry("GET", status_code=500)
@@ -204,17 +204,17 @@ class TestRetry:
         assert not retry.is_retry("GET", status_code=500)
         assert retry.is_retry("POST", status_code=500)
 
-    def test_exhausted(self):
+    def test_exhausted(self) -> None:
         assert not Retry(0).is_exhausted()
         assert Retry(-1).is_exhausted()
         assert Retry(1).increment(method="GET").total == 0
 
     @pytest.mark.parametrize("total", [-1, 0])
-    def test_disabled(self, total):
+    def test_disabled(self, total) -> None:
         with pytest.raises(MaxRetryError):
             Retry(total).increment(method="GET")
 
-    def test_error_message(self):
+    def test_error_message(self) -> None:
         retry = Retry(total=0)
         with pytest.raises(MaxRetryError, match="None: read timed out") as e:
             retry = retry.increment(
@@ -243,7 +243,7 @@ class TestRetry:
             retry = retry.increment(error=ConnectTimeoutError("conntimeout"))
         assert "Caused by redirect" not in str(e.value)
 
-    def test_history(self):
+    def test_history(self) -> None:
         retry = Retry(total=10, allowed_methods=frozenset(["GET", "POST"]))
         assert retry.history == tuple()
         connection_error = ConnectTimeoutError("conntimeout")
@@ -268,24 +268,24 @@ class TestRetry:
         )
         assert retry.history == history
 
-    def test_retry_method_not_allowed(self):
+    def test_retry_method_not_allowed(self) -> None:
         error = ReadTimeoutError(None, "/", "read timed out")
         retry = Retry()
         with pytest.raises(ReadTimeoutError):
             retry.increment(method="POST", error=error)
 
-    def test_retry_default_remove_headers_on_redirect(self):
+    def test_retry_default_remove_headers_on_redirect(self) -> None:
         retry = Retry()
 
         assert list(retry.remove_headers_on_redirect) == ["authorization"]
 
-    def test_retry_set_remove_headers_on_redirect(self):
+    def test_retry_set_remove_headers_on_redirect(self) -> None:
         retry = Retry(remove_headers_on_redirect=["X-API-Secret"])
 
         assert list(retry.remove_headers_on_redirect) == ["x-api-secret"]
 
     @pytest.mark.parametrize("value", ["-1", "+1", "1.0", "\xb2"])  # \xb2 = ^2
-    def test_parse_retry_after_invalid(self, value):
+    def test_parse_retry_after_invalid(self, value) -> None:
         retry = Retry()
         with pytest.raises(InvalidHeader):
             retry.parse_retry_after(value)
@@ -293,12 +293,14 @@ class TestRetry:
     @pytest.mark.parametrize(
         "value, expected", [("0", 0), ("1000", 1000), ("\t42 ", 42)]
     )
-    def test_parse_retry_after(self, value, expected):
+    def test_parse_retry_after(self, value, expected) -> None:
         retry = Retry()
         assert retry.parse_retry_after(value) == expected
 
     @pytest.mark.parametrize("respect_retry_after_header", [True, False])
-    def test_respect_retry_after_header_propagated(self, respect_retry_after_header):
+    def test_respect_retry_after_header_propagated(
+        self, respect_retry_after_header
+    ) -> None:
 
         retry = Retry(respect_retry_after_header=respect_retry_after_header)
         new_retry = retry.new()
@@ -337,7 +339,7 @@ class TestRetry:
     @pytest.mark.usefixtures("stub_timezone")
     def test_respect_retry_after_header_sleep(
         self, retry_after_header, respect_retry_after_header, sleep_duration
-    ):
+    ) -> None:
         retry = Retry(respect_retry_after_header=respect_retry_after_header)
 
         with mock.patch("time.sleep") as sleep_mock:

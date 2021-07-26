@@ -36,13 +36,13 @@ class TestPickle:
             ReadTimeoutError(HTTPConnectionPool("localhost"), "/", None),
         ],
     )
-    def test_exceptions(self, exception):
+    def test_exceptions(self, exception) -> None:
         result = pickle.loads(pickle.dumps(exception))
         assert isinstance(result, type(exception))
 
 
 class TestFormat:
-    def test_header_parsing_errors(self):
+    def test_header_parsing_errors(self) -> None:
         hpe = HeaderParsingError("defects", "unparsed_data")
 
         assert "defects" in str(hpe)
@@ -50,7 +50,7 @@ class TestFormat:
 
 
 class TestNewConnectionError:
-    def test_pool_property_deprecation_warning(self):
+    def test_pool_property_deprecation_warning(self) -> None:
         err = NewConnectionError(HTTPConnection("localhost"), "test")
         with pytest.warns(DeprecationWarning) as records:
             err.pool

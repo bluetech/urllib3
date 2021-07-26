@@ -6,7 +6,7 @@ from dummyserver.testcase import HTTPDummyServerTestCase, HTTPSDummyServerTestCa
 
 
 class TestHTTPIntegration(HTTPDummyServerTestCase):
-    def test_requests_integration(self):
+    def test_requests_integration(self) -> None:
         with pytest.warns(DeprecationWarning) as records:
             response = requests.get(f"{self.scheme}://{self.host}:{self.port}")
 
@@ -19,7 +19,7 @@ class TestHTTPIntegration(HTTPDummyServerTestCase):
 
 
 class TestHTTPSIntegration(HTTPSDummyServerTestCase):
-    def test_requests_integration(self):
+    def test_requests_integration(self) -> None:
         with pytest.warns(DeprecationWarning) as records:
             response = requests.get(
                 f"{self.scheme}://{self.host}:{self.port}", verify=DEFAULT_CA

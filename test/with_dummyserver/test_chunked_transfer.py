@@ -33,7 +33,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
 
         self._start_server(socket_handler)
 
-    def test_chunks(self):
+    def test_chunks(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -66,19 +66,19 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             else:
                 assert body == b"0\r\n\r\n"
 
-    def test_bytestring_body(self):
+    def test_bytestring_body(self) -> None:
         self._test_body(b"thisshouldbeonechunk\r\nasdf")
 
-    def test_unicode_body(self):
+    def test_unicode_body(self) -> None:
         self._test_body("thisshouldbeonechunk\r\näöüß")
 
-    def test_empty_body(self):
+    def test_empty_body(self) -> None:
         self._test_body(None)
 
-    def test_empty_string_body(self):
+    def test_empty_string_body(self) -> None:
         self._test_body("")
 
-    def test_empty_iterable_body(self):
+    def test_empty_iterable_body(self) -> None:
         self._test_body([])
 
     def _get_header_lines(self, prefix):
@@ -86,7 +86,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
         header_lines = header_block.split(b"\r\n")[1:]
         return [x for x in header_lines if x.startswith(prefix)]
 
-    def test_removes_duplicate_host_header(self):
+    def test_removes_duplicate_host_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -97,7 +97,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             host_headers = self._get_header_lines(b"host")
             assert len(host_headers) == 1
 
-    def test_provides_default_host_header(self):
+    def test_provides_default_host_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -106,7 +106,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             host_headers = self._get_header_lines(b"host")
             assert len(host_headers) == 1
 
-    def test_provides_default_user_agent_header(self):
+    def test_provides_default_user_agent_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -115,7 +115,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             ua_headers = self._get_header_lines(b"user-agent")
             assert len(ua_headers) == 1
 
-    def test_preserve_user_agent_header(self):
+    def test_preserve_user_agent_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -134,7 +134,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             # provided.
             assert ua_headers[0] == b"user-agent: test-agent"
 
-    def test_remove_user_agent_header(self):
+    def test_remove_user_agent_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -149,7 +149,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             ua_headers = self._get_header_lines(b"user-agent")
             assert len(ua_headers) == 0
 
-    def test_provides_default_transfer_encoding_header(self):
+    def test_provides_default_transfer_encoding_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -158,7 +158,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             te_headers = self._get_header_lines(b"transfer-encoding")
             assert len(te_headers) == 1
 
-    def test_preserve_transfer_encoding_header(self):
+    def test_preserve_transfer_encoding_header(self) -> None:
         self.start_chunked_handler()
         chunks = ["foo", "bar", "", "bazzzzzzzzzzzzzzzzzzzzzz"]
         with HTTPConnectionPool(self.host, self.port, retries=False) as pool:
@@ -177,7 +177,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
             # was provided.
             assert te_headers[0] == b"transfer-encoding: test-transfer-encoding"
 
-    def test_preserve_chunked_on_retry_after(self):
+    def test_preserve_chunked_on_retry_after(self) -> None:
         self.chunked_requests = 0
         self.socks = []
 
@@ -206,7 +206,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
                 sock.close()
         assert self.chunked_requests == 2
 
-    def test_preserve_chunked_on_redirect(self, monkeypatch):
+    def test_preserve_chunked_on_redirect(self, monkeypatch) -> None:
         self.chunked_requests = 0
 
         def socket_handler(listener):
@@ -234,7 +234,7 @@ class TestChunkedTransfer(SocketDummyServerTestCase):
                 )
         assert self.chunked_requests == 2
 
-    def test_preserve_chunked_on_broken_connection(self, monkeypatch):
+    def test_preserve_chunked_on_broken_connection(self, monkeypatch) -> None:
         self.chunked_requests = 0
 
         def socket_handler(listener):

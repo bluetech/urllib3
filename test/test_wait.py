@@ -29,7 +29,7 @@ if _have_working_poll():
 
 
 @pytest.mark.parametrize("wfs", variants)
-def test_wait_for_socket(wfs, spair):
+def test_wait_for_socket(wfs, spair) -> None:
     a, b = spair
 
     with pytest.raises(RuntimeError):
@@ -72,7 +72,7 @@ def test_wait_for_socket(wfs, spair):
         wfs(b, read=True)
 
 
-def test_wait_for_read_write(spair):
+def test_wait_for_read_write(spair) -> None:
     a, b = spair
 
     assert not wait_for_read(a, 0)
@@ -97,7 +97,7 @@ def test_wait_for_read_write(spair):
 
 @pytest.mark.skipif(not hasattr(signal, "setitimer"), reason="need setitimer() support")
 @pytest.mark.parametrize("wfs", variants)
-def test_eintr(wfs, spair):
+def test_eintr(wfs, spair) -> None:
     a, b = spair
     interrupt_count = [0]
 
@@ -128,7 +128,7 @@ def test_eintr(wfs, spair):
 
 @pytest.mark.skipif(not hasattr(signal, "setitimer"), reason="need setitimer() support")
 @pytest.mark.parametrize("wfs", variants)
-def test_eintr_zero_timeout(wfs, spair):
+def test_eintr_zero_timeout(wfs, spair) -> None:
     a, b = spair
     interrupt_count = [0]
 
@@ -159,7 +159,7 @@ def test_eintr_zero_timeout(wfs, spair):
 
 @pytest.mark.skipif(not hasattr(signal, "setitimer"), reason="need setitimer() support")
 @pytest.mark.parametrize("wfs", variants)
-def test_eintr_infinite_timeout(wfs, spair):
+def test_eintr_infinite_timeout(wfs, spair) -> None:
     a, b = spair
     interrupt_count = [0]
 

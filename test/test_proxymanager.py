@@ -10,7 +10,7 @@ from .port_helpers import find_unused_port
 
 class TestProxyManager:
     @pytest.mark.parametrize("proxy_scheme", ["http", "https"])
-    def test_proxy_headers(self, proxy_scheme):
+    def test_proxy_headers(self, proxy_scheme) -> None:
         url = "http://pypi.org/project/urllib3/"
         proxy_url = f"{proxy_scheme}://something:1234"
         with ProxyManager(proxy_url) as p:
@@ -39,19 +39,19 @@ class TestProxyManager:
 
             assert headers == expected_headers
 
-    def test_default_port(self):
+    def test_default_port(self) -> None:
         with ProxyManager("http://something") as p:
             assert p.proxy.port == 80
         with ProxyManager("https://something") as p:
             assert p.proxy.port == 443
 
-    def test_invalid_scheme(self):
+    def test_invalid_scheme(self) -> None:
         with pytest.raises(AssertionError):
             ProxyManager("invalid://host/p")
         with pytest.raises(ValueError):
             ProxyManager("invalid://host/p")
 
-    def test_proxy_tunnel(self):
+    def test_proxy_tunnel(self) -> None:
         http_url = parse_url("http://example.com")
         https_url = parse_url("https://example.com")
         with ProxyManager("http://proxy:8080") as p:
@@ -66,7 +66,7 @@ class TestProxyManager:
             assert p._proxy_requires_url_absolute_form(http_url)
             assert p._proxy_requires_url_absolute_form(https_url)
 
-    def test_proxy_connect_retry(self):
+    def test_proxy_connect_retry(self) -> None:
         retry = Retry(total=None, connect=False)
         port = find_unused_port()
         with ProxyManager(f"http://localhost:{port}") as p:

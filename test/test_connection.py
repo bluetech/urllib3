@@ -21,24 +21,24 @@ class TestConnection:
     Tests in this suite should not make any network requests or connections.
     """
 
-    def test_match_hostname_no_cert(self):
+    def test_match_hostname_no_cert(self) -> None:
         cert = None
         asserted_hostname = "foo"
         with pytest.raises(ValueError):
             _match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_empty_cert(self):
+    def test_match_hostname_empty_cert(self) -> None:
         cert = {}
         asserted_hostname = "foo"
         with pytest.raises(ValueError):
             _match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_match(self):
+    def test_match_hostname_match(self) -> None:
         cert = {"subjectAltName": [("DNS", "foo")]}
         asserted_hostname = "foo"
         _match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_mismatch(self):
+    def test_match_hostname_mismatch(self) -> None:
         cert = {"subjectAltName": [("DNS", "foo")]}
         asserted_hostname = "bar"
         try:
@@ -53,7 +53,7 @@ class TestConnection:
             )
             assert e._peer_cert == cert
 
-    def test_match_hostname_no_dns(self):
+    def test_match_hostname_no_dns(self) -> None:
         cert = {"subjectAltName": [("DNS", "")]}
         asserted_hostname = "bar"
         try:
@@ -68,32 +68,32 @@ class TestConnection:
             )
             assert e._peer_cert == cert
 
-    def test_match_hostname_startwith_wildcard(self):
+    def test_match_hostname_startwith_wildcard(self) -> None:
         cert = {"subjectAltName": [("DNS", "*")]}
         asserted_hostname = "foo"
         _match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_dnsname(self):
+    def test_match_hostname_dnsname(self) -> None:
         cert = {"subjectAltName": [("DNS", "xn--p1b6ci4b4b3a*.xn--11b5bs8d")]}
         asserted_hostname = "xn--p1b6ci4b4b3a*.xn--11b5bs8d"
         _match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_include_wildcard(self):
+    def test_match_hostname_include_wildcard(self) -> None:
         cert = {"subjectAltName": [("DNS", "foo*")]}
         asserted_hostname = "foobar"
         _match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_more_than_one_dnsname_error(self):
+    def test_match_hostname_more_than_one_dnsname_error(self) -> None:
         cert = {"subjectAltName": [("DNS", "foo*"), ("DNS", "fo*")]}
         asserted_hostname = "bar"
         with pytest.raises(CertificateError, match="doesn't match either of"):
             _match_hostname(cert, asserted_hostname)
 
-    def test_dnsname_match_include_more_than_one_wildcard_error(self):
+    def test_dnsname_match_include_more_than_one_wildcard_error(self) -> None:
         with pytest.raises(CertificateError, match="too many wildcards in certificate"):
             _dnsname_match("foo**", "foobar")
 
-    def test_match_hostname_ignore_common_name(self):
+    def test_match_hostname_ignore_common_name(self) -> None:
         cert = {"subject": [("commonName", "foo")]}
         asserted_hostname = "foo"
         with pytest.raises(
@@ -102,7 +102,7 @@ class TestConnection:
         ):
             match_hostname(cert, asserted_hostname)
 
-    def test_match_hostname_ip_address(self):
+    def test_match_hostname_ip_address(self) -> None:
         cert = {"subjectAltName": [("IP Address", "1.1.1.1")]}
         asserted_hostname = "1.1.1.2"
         try:
@@ -117,7 +117,7 @@ class TestConnection:
             )
             assert e._peer_cert == cert
 
-    def test_recent_date(self):
+    def test_recent_date(self) -> None:
         # This test is to make sure that the RECENT_DATE value
         # doesn't get too far behind what the current date is.
         # When this test fails update urllib3.connection.RECENT_DATE
@@ -125,6 +125,6 @@ class TestConnection:
         two_years = datetime.timedelta(days=365 * 2)
         assert RECENT_DATE > (datetime.datetime.today() - two_years).date()
 
-    def test_HTTPSConnection_default_socket_options(self):
+    def test_HTTPSConnection_default_socket_options(self) -> None:
         conn = HTTPSConnection("not.a.real.host", port=443)
         assert conn.socket_options == [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
