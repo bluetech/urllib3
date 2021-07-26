@@ -154,11 +154,13 @@ def mypy(session):
     """Run mypy."""
     session.install("mypy==0.910")
     session.install("idna>=2.0.0")
-    session.install("cryptography>=1.3.4")
+    session.install("cryptography>=3.4.4")
     session.install("tornado>=6.1")
     session.install("pytest>=6.2")
+    session.install("types-requests")
+    session.install("types-python-dateutil")
     session.run("mypy", "--version")
-    session.run("mypy", "src/urllib3", "dummyserver")
+    session.run("mypy", "src/urllib3", "dummyserver", "test")
 
 
 @nox.session
